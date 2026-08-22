@@ -8,7 +8,7 @@ describe("settlement and Equity Floor", () => {
     expect(first).toEqual(calculateSettlement(settlementInput));
     expect(first.status).toBe("calculated");
     if (first.status === "calculated") {
-      expect(first.totalValueCents).toBe(18183);
+      expect(first.totalValueCents).toBe(1320);
       expect(
         first.contributorPoolCents +
           first.equityPoolCents +
@@ -42,13 +42,29 @@ describe("settlement and Equity Floor", () => {
       ...settlementInput,
       policy: {
         ...settlementInput.policy,
-        equityShareBps: 1500,
-        contributorShareBps: 8000,
+        equityShareBps: 5000,
+        contributorShareBps: 4500,
       },
     });
     expect(result.status).toBe("blocked");
     if (result.status === "blocked")
       expect(result.rejectionCodes).toContain("EQUITY_FLOOR_VIOLATION");
+  });
+
+  it("allocates both pools in integer cents after policy validation", () => {
+    const result = calculateSettlement(settlementInput);
+    if (result.status !== "calculated")
+      throw new Error("Expected calculated settlement");
+    expect(
+      result.contributorAllocations.reduce((sum, item) => sum + item.cents, 0),
+    ).toBe(result.contributorPoolCents);
+    expect(
+      result.equityAllocations.reduce((sum, item) => sum + item.cents, 0),
+    ).toBe(result.equityPoolCents);
+    expect(result.equityAllocations).toEqual([
+      expect.objectContaining({ participantId: "resident_001", cents: 515 }),
+      expect.objectContaining({ participantId: "resident_003", cents: 343 }),
+    ]);
   });
 
   it("keeps contributor rewards separate from Equity Dividends", () => {

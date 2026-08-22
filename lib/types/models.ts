@@ -220,6 +220,7 @@ export interface Settlement {
   totalValue: number;
   contributorRewards: number;
   equityCredit: number;
+  communityReserve: number;
   equityFloorApplied: boolean;
   status: SettlementStatus;
   createdAt: string;

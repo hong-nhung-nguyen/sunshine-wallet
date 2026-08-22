@@ -175,6 +175,7 @@ export const settlementSchema = z
     totalValue: nonNegative,
     contributorRewards: nonNegative,
     equityCredit: nonNegative,
+    communityReserve: nonNegative,
     equityFloorApplied: z.boolean(),
     status: z.enum(["pending", "calculated", "settled", "reversed"]),
     createdAt: isoTimestamp,
@@ -182,10 +183,13 @@ export const settlementSchema = z
     provenance: provenanceSchema.optional(),
   })
   .refine(
-    ({ totalValue, contributorRewards, equityCredit }) =>
-      Math.abs(totalValue - contributorRewards - equityCredit) < 0.01,
+    ({ totalValue, contributorRewards, equityCredit, communityReserve }) =>
+      Math.abs(
+        totalValue - contributorRewards - equityCredit - communityReserve,
+      ) < 0.01,
     {
-      message: "Contributor rewards and equity credit must equal total value.",
+      message:
+        "Contributor rewards, equity credit and reserve must equal total value.",
       path: ["totalValue"],
     },
   );

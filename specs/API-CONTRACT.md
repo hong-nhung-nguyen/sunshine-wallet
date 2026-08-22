@@ -147,7 +147,7 @@ The API must keep units explicit:
   "windowStart": "2026-08-22T12:00:00Z",
   "windowEnd": "2026-08-22T14:00:00Z",
   "confidence": 0.86,
-  "equityFloor": 0.15,
+  "equityFloor": 0.60,
   "provenance": {
     "source": "simulated_network_forecast",
     "notes": "Constraint expected during midday export period"
@@ -180,9 +180,10 @@ The API must keep units explicit:
   "id": "settlement_001",
   "eventId": "event_001",
   "verifiedFlexEnergyKwh": 60.4,
-  "totalValue": 182.10,
-  "equityCredit": 51.40,
-  "contributorRewards": 130.70,
+  "totalValue": 13.20,
+  "equityCredit": 8.58,
+  "contributorRewards": 3.96,
+  "communityReserve": 0.66,
   "equityFloorApplied": true,
   "status": "settled"
 }
@@ -595,7 +596,7 @@ Response:
     "windowStart": "2026-08-22T12:00:00Z",
     "windowEnd": "2026-08-22T14:00:00Z",
     "confidence": 0.86,
-    "equityFloor": 0.15,
+    "equityFloor": 0.60,
     "provenance": {
       "source": "simulated_network_forecast",
       "notes": "Constraint expected during midday export period"
@@ -621,7 +622,7 @@ Request:
   "targetFlexEnergyKwh": 72,
   "maxPowerKw": 18,
   "maxShiftEnergyKwh": 90,
-  "equityFloor": 0.15,
+  "equityFloor": 0.60,
   "provenance": {
     "source": "simulated_network_forecast"
   }
@@ -775,7 +776,7 @@ Response:
   "data": {
     "eventId": "event_001",
     "verificationStatus": "passed",
-    "verifiedFlexEnergyKwh": 63.8,
+    "verifiedFlexEnergyKwh": 16.5,
     "confidenceScore": 0.89,
     "settlementGatePassed": true,
     "status": "verified"
@@ -790,9 +791,9 @@ Request:
 
 ```json
 {
-  "verifiedFlexEnergyKwh": 63.8,
-  "valuePerKwh": 2.85,
-  "equityFloor": 0.15
+  "verifiedFlexEnergyKwh": 16.5,
+  "valuePerKwh": 0.80,
+  "equityFloor": 0.60
 }
 ```
 
@@ -803,9 +804,10 @@ Response:
   "success": true,
   "data": {
     "eventId": "event_001",
-    "totalValue": 182.1,
-    "equityCredit": 51.4,
-    "contributorRewards": 130.7,
+    "totalValue": 13.2,
+    "equityCredit": 8.58,
+    "contributorRewards": 3.96,
+    "communityReserve": 0.66,
     "portfolioAdjustments": [
       {
         "residentId": "resident_001",
@@ -834,18 +836,28 @@ Response:
     "eventId": "event_001",
     "contributors": [
       {
-        "residentId": "resident_001",
-        "resourceId": "resource_001",
-        "shareOfVerifiedResponse": 0.42,
-        "reward": 54.7,
-        "equityCredit": 15.1
+        "residentId": "resident_002",
+        "resourceId": "resource_002",
+        "shareOfVerifiedResponse": 0.5091,
+        "attributedEnergyKwh": 8.4,
+        "reward": 0,
+        "equityCredit": 0
+      },
+      {
+        "residentId": "resident_002",
+        "resourceId": "resource_004",
+        "shareOfVerifiedResponse": 0.2788,
+        "attributedEnergyKwh": 4.6,
+        "reward": 0,
+        "equityCredit": 0
       },
       {
         "residentId": "resident_003",
-        "resourceId": "resource_007",
-        "shareOfVerifiedResponse": 0.58,
-        "reward": 76.0,
-        "equityCredit": 21.3
+        "resourceId": "resource_003",
+        "shareOfVerifiedResponse": 0.2121,
+        "attributedEnergyKwh": 3.5,
+        "reward": 0,
+        "equityCredit": 0
       }
     ]
   }
@@ -860,9 +872,9 @@ Request:
 ```json
 {
   "eventId": "event_001",
-  "verifiedFlexEnergyKwh": 63.8,
-  "valuePerKwh": 2.85,
-  "equityFloor": 0.15
+  "verifiedFlexEnergyKwh": 16.5,
+  "valuePerKwh": 0.80,
+  "equityFloor": 0.60
 }
 ```
 
@@ -872,9 +884,10 @@ Response:
 {
   "success": true,
   "data": {
-    "totalValue": 182.1,
-    "equityCredit": 51.4,
-    "contributorRewards": 130.7,
+    "totalValue": 13.2,
+    "equityCredit": 8.58,
+    "contributorRewards": 3.96,
+    "communityReserve": 0.66,
     "status": "calculated"
   }
 }

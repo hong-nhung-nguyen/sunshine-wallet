@@ -203,7 +203,7 @@ export default function OptimisationPage() {
             </div>
             <div className="flex justify-between gap-4">
               <dt>Rotation fairness</dt>
-              <dd className="font-mono font-semibold">15%</dd>
+              <dd className="font-mono font-semibold">60%</dd>
             </div>
           </dl>
           <p className="mt-6 border-t border-white/10 pt-4 text-xs leading-5 text-slate-300">

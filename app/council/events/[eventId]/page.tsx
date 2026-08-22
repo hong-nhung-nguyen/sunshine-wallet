@@ -41,10 +41,10 @@ export default async function CouncilEventDetailPage({
           </p>
         </div>
         <Link
-          href="/council/optimisation"
+          href="/council/engine"
           className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
         >
-          Review dispatch plan →
+          Review complete engine flow →
         </Link>
       </header>
       <Card className="mt-7">

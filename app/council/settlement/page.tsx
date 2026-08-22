@@ -9,8 +9,8 @@ export default function SettlementPage() {
     ...settlementInput,
     policy: {
       ...settlementInput.policy,
-      equityShareBps: 1500,
-      contributorShareBps: 8000,
+      equityShareBps: 5000,
+      contributorShareBps: 4500,
     },
   });
   if (result.status !== "calculated") return null;
@@ -96,25 +96,25 @@ export default function SettlementPage() {
             <div
               className="flex h-12"
               role="img"
-              aria-label="30 percent Equity Pool, 65 percent Contributor Pool and 5 percent Community Reserve"
+              aria-label={`${policy.equityShareBps / 100} percent Equity Pool, ${policy.contributorShareBps / 100} percent Contributor Pool and ${policy.reserveShareBps / 100} percent Community Reserve`}
             >
               <span
                 className="grid place-items-center bg-[var(--council-accent)] text-xs font-bold text-[var(--council-ink)]"
                 style={{ width: `${policy.equityShareBps / 100}%` }}
               >
-                30%
+                {policy.equityShareBps / 100}%
               </span>
               <span
                 className="grid place-items-center bg-teal-700 text-xs font-bold text-white"
                 style={{ width: `${policy.contributorShareBps / 100}%` }}
               >
-                65%
+                {policy.contributorShareBps / 100}%
               </span>
               <span
                 className="grid place-items-center bg-slate-400 text-xs font-bold text-white"
                 style={{ width: `${policy.reserveShareBps / 100}%` }}
               >
-                5%
+                {policy.reserveShareBps / 100}%
               </span>
             </div>
           </div>
@@ -221,8 +221,8 @@ export default function SettlementPage() {
             <li className="flex gap-3 rounded-xl bg-emerald-50 p-4 text-sm">
               <span className="text-emerald-700">✓</span>
               <span>
-                <b>Equity share exceeds floor.</b> 30% is above the required
-                20%.
+                <b>Equity share exceeds floor.</b> {policy.equityShareBps / 100}
+                % is above the required {policy.equityFloorBps / 100}%.
               </span>
             </li>
             <li className="flex gap-3 rounded-xl bg-emerald-50 p-4 text-sm">
@@ -242,7 +242,7 @@ export default function SettlementPage() {
             Equity Floor violation blocks settlement
           </h2>
           <p className="mt-3 text-sm leading-6 text-rose-900">
-            A proposed 15% Equity Pool is below Council’s 20% floor. The
+            A proposed 50% Equity Pool is below Council’s 60% floor. The
             calculation returns{" "}
             <span className="font-mono font-semibold">
               {invalidFloor.status}

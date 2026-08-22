@@ -219,7 +219,7 @@ export default function CouncilPage() {
             residents without practical roof access are included in this cell.
           </p>
           <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <p className="text-sm font-semibold">15% Equity Floor</p>
+            <p className="text-sm font-semibold">60% Equity Floor</p>
             <p className="mt-1 text-xs text-[var(--muted)]">
               Council demo policy
             </p>

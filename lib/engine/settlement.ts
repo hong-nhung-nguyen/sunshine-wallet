@@ -16,7 +16,24 @@ export interface SettlementInput {
   verifiedFlexEnergyKwh: number;
   valueRateCentsPerKwh: number;
   policy: SettlementPolicy;
+  contributorShares: readonly {
+    participantId: string;
+    resourceId: string;
+    share: number;
+  }[];
+  equityRecipients: readonly {
+    participantId: string;
+    weight: number;
+    reason: string;
+  }[];
   createdAt: string;
+}
+
+export interface FinancialAllocation {
+  participantId: string;
+  resourceId?: string;
+  cents: number;
+  reason: string;
 }
 
 export type SettlementRejectionCode =
@@ -33,6 +50,8 @@ export type SettlementCalculation =
       contributorPoolCents: number;
       equityPoolCents: number;
       reservePoolCents: number;
+      contributorAllocations: FinancialAllocation[];
+      equityAllocations: FinancialAllocation[];
       effectiveEquityPercent: number;
       policy: SettlementPolicy;
       formula: string;
@@ -74,6 +93,27 @@ function allocatePools(totalValueCents: number, policy: SettlementPolicy) {
   ) as Record<"equity" | "contributor" | "reserve", number>;
 }
 
+function allocateCents(
+  totalCents: number,
+  rows: readonly { id: string; weight: number }[],
+) {
+  const totalWeight = rows.reduce((sum, row) => sum + row.weight, 0);
+  if (totalWeight <= 0) return new Map(rows.map(({ id }) => [id, 0]));
+  const allocations = rows.map((row) => {
+    const exact = (totalCents * row.weight) / totalWeight;
+    return { ...row, cents: Math.floor(exact), remainder: exact % 1 };
+  });
+  const remaining =
+    totalCents - allocations.reduce((sum, row) => sum + row.cents, 0);
+  const order = [...allocations].sort(
+    (left, right) =>
+      right.remainder - left.remainder || left.id.localeCompare(right.id),
+  );
+  for (let index = 0; index < remaining; index += 1)
+    order[index % order.length].cents += 1;
+  return new Map(allocations.map(({ id, cents }) => [id, cents]));
+}
+
 export function calculateSettlement(
   input: SettlementInput,
 ): SettlementCalculation {
@@ -107,6 +147,13 @@ export function calculateSettlement(
       "Verified energy and prototype rate must be non-negative; rate must use integer cents",
     );
   }
+  if (
+    input.contributorShares.some(({ share }) => share < 0) ||
+    input.equityRecipients.some(({ weight }) => weight < 0)
+  ) {
+    rejectionCodes.push("INVALID_VALUE_INPUT");
+    reasons.push("Allocation shares and weights must be non-negative");
+  }
   if (rejectionCodes.length > 0)
     return {
       status: "blocked",
@@ -120,6 +167,31 @@ export function calculateSettlement(
     input.verifiedFlexEnergyKwh * input.valueRateCentsPerKwh,
   );
   const pools = allocatePools(totalValueCents, input.policy);
+  const contributorCents = allocateCents(
+    pools.contributor,
+    input.contributorShares.map(({ resourceId, share }) => ({
+      id: resourceId,
+      weight: share,
+    })),
+  );
+  const equityCents = allocateCents(
+    pools.equity,
+    input.equityRecipients.map(({ participantId, weight }) => ({
+      id: participantId,
+      weight,
+    })),
+  );
+  const contributorAllocations = input.contributorShares.map((item) => ({
+    participantId: item.participantId,
+    resourceId: item.resourceId,
+    cents: contributorCents.get(item.resourceId) ?? 0,
+    reason: "Proportional share of verified contributor response",
+  }));
+  const equityAllocations = input.equityRecipients.map((item) => ({
+    participantId: item.participantId,
+    cents: equityCents.get(item.participantId) ?? 0,
+    reason: item.reason,
+  }));
   const provenance: Provenance = {
     source: "operator_review",
     notes:
@@ -133,6 +205,7 @@ export function calculateSettlement(
     totalValue: totalValueCents / 100,
     contributorRewards: pools.contributor / 100,
     equityCredit: pools.equity / 100,
+    communityReserve: pools.reserve / 100,
     equityFloorApplied: true,
     status: "calculated",
     createdAt: input.createdAt,
@@ -146,6 +219,8 @@ export function calculateSettlement(
     contributorPoolCents: pools.contributor,
     equityPoolCents: pools.equity,
     reservePoolCents: pools.reserve,
+    contributorAllocations,
+    equityAllocations,
     effectiveEquityPercent: input.policy.equityShareBps / 100,
     policy: input.policy,
     formula: `${input.verifiedFlexEnergyKwh} kWh × $${(input.valueRateCentsPerKwh / 100).toFixed(2)} per verified kWh`,

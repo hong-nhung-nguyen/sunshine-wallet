@@ -21,6 +21,11 @@ describe("Sunshine Wallet seed data", () => {
     expect(verification?.settlementGatePassed).toBe(true);
     expect(
       transactions.reduce((sum, item) => sum + item.amount, 0),
+    ).toBeCloseTo(settlement.contributorRewards + settlement.equityCredit, 2);
+    expect(
+      settlement.contributorRewards +
+        settlement.equityCredit +
+        settlement.communityReserve,
     ).toBeCloseTo(settlement.totalValue, 2);
   });
 

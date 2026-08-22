@@ -271,7 +271,7 @@ export interface FlexEvent {
   maxPowerKw: number;
   maxShiftEnergyKwh: number;
   confidence: number;
-  equityFloor: number; // proportion such as 0.15
+  equityFloor: number; // canonical Council policy is 0.60
   createdAt: string;
   updatedAt?: string;
   provenance?: Provenance;
@@ -404,6 +404,7 @@ export interface Settlement {
   totalValue: number;
   contributorRewards: number;
   equityCredit: number;
+  communityReserve: number;
   equityFloorApplied: boolean;
   status: SettlementStatus;
   createdAt: string;
@@ -416,7 +417,7 @@ export interface Settlement {
 
 - settlement cannot be created before verification.
 - `totalValue >= 0`.
-- `contributorRewards + equityCredit` should be consistent with `totalValue` in the demo logic.
+- `contributorRewards + equityCredit + communityReserve` must reconcile with `totalValue` in the demo logic.
 - `equityFloorApplied` must be explicit.
 
 ## 6.12 WalletTransaction
@@ -562,7 +563,7 @@ These must never be violated by the application:
     "maxPowerKw": 18,
     "maxShiftEnergyKwh": 90,
     "confidence": 0.86,
-    "equityFloor": 0.15,
+    "equityFloor": 0.60,
     "provenance": {
       "source": "simulated_network_forecast",
       "assumptions": [
@@ -588,17 +589,18 @@ These must never be violated by the application:
     "eventId": "event_001",
     "verificationStatus": "passed",
     "baselineReference": "baseline_2026_08_22_12_00",
-    "verifiedFlexEnergyKwh": 63.8,
+    "verifiedFlexEnergyKwh": 16.5,
     "confidenceScore": 0.89,
     "settlementGatePassed": true
   },
   "settlement": {
     "id": "settlement_001",
     "eventId": "event_001",
-    "verifiedFlexEnergyKwh": 63.8,
-    "totalValue": 182.1,
-    "contributorRewards": 130.7,
-    "equityCredit": 51.4,
+    "verifiedFlexEnergyKwh": 16.5,
+    "totalValue": 13.2,
+    "contributorRewards": 3.96,
+    "equityCredit": 8.58,
+    "communityReserve": 0.66,
     "equityFloorApplied": true,
     "status": "settled"
   }

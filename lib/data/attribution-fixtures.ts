@@ -20,19 +20,5 @@ export const attributionInput: AttributionInput = {
       qualifyingEnergyKwh: 3.5,
     },
   ],
-  contributorPoolCents: 13070,
-  equityPoolCents: 5140,
-  equityRecipients: [
-    {
-      participantId: "resident_001",
-      weight: 3,
-      reason: "Priority renter without practical roof access",
-    },
-    {
-      participantId: "resident_003",
-      weight: 2,
-      reason: "Priority social-housing resident without practical roof access",
-    },
-  ],
   createdAt: "2026-08-22T14:30:00+10:00",
 };
