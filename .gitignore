@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.npm/
+.pnpm/
+
+# Build outputs
+.next/git remote add origin https://github.com/hong-nhung-nguyen/sunshine-wallet.git
+out/
+dist/
+build/
+.env
+.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+*.swo
+
+# Test coverage
+coverage/
+
+# Local data
+*.local
