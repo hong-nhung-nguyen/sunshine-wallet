@@ -14,6 +14,8 @@
   --council-bg: #eef1ef;
   --council-ink: #112f35;
   --council-accent: #f2b84b;
+  --resident-bg: #f5f2e8;
+  --wallet: #48377d;
 }
 
 * {
@@ -50,6 +52,20 @@ a {
   background-image: linear-gradient(rgb(17 47 53 / 6%) 1px, transparent 1px),
     linear-gradient(90deg, rgb(17 47 53 / 6%) 1px, transparent 1px);
   background-size: 24px 24px;
+.resident-hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.resident-hero::after {
+  position: absolute;
+  right: -4rem;
+  bottom: -6rem;
+  width: 15rem;
+  height: 15rem;
+  border: 2.5rem solid rgb(255 205 73 / 18%);
+  border-radius: 999px;
+  content: "";
 }
 
 @media (prefers-reduced-motion: reduce) {
