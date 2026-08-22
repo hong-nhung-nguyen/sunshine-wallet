@@ -11,6 +11,9 @@
   --border: #dce4d9;
   --muted: #5f6f65;
   --ring: #267a4d;
+  --council-bg: #eef1ef;
+  --council-ink: #112f35;
+  --council-accent: #f2b84b;
 }
 
 * {
@@ -41,6 +44,12 @@ a {
 ::selection {
   background: #f5cc66;
   color: #17231b;
+}
+
+.metric-grid {
+  background-image: linear-gradient(rgb(17 47 53 / 6%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(17 47 53 / 6%) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 @media (prefers-reduced-motion: reduce) {
