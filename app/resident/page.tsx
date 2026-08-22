@@ -1,32 +1,48 @@
-import { Card } from "@/components/ui/card";
+import Link from "next/link";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { Card } from "@/components/ui/card";
+import { residentEvents, residentPolicy, residentProfile } from "@/lib/data/resident";
+import { formatAud } from "@/lib/formatters";
 
 export default function ResidentPage() {
+  const nextEvent = residentEvents[0];
   return (
-    <div className="mx-auto max-w-4xl px-5 py-12">
-      <StatusBadge>Ready to participate</StatusBadge>
-      <h1 className="mt-5 text-4xl font-semibold tracking-tight">
-        Good afternoon, Maya.
-      </h1>
-      <p className="mt-3 text-[var(--muted)]">
-        Your energy flexibility helps the whole Dapto community.
-      </p>
-      <div className="mt-10 grid gap-5 sm:grid-cols-2">
-        <Card>
-          <p className="text-sm text-[var(--muted)]">Wallet balance</p>
-          <p className="mt-3 font-mono text-4xl font-semibold">$38.20</p>
-          <p className="mt-3 text-sm text-[var(--primary)]">
-            $7.40 earned this month
-          </p>
+    <div>
+      <section className="resident-hero overflow-hidden rounded-[2rem] bg-[var(--primary)] p-6 text-white shadow-[0_22px_55px_rgba(16,75,44,0.18)] sm:p-8">
+        <div className="relative z-10 max-w-2xl">
+          <StatusBadge>Included in the community program</StatusBadge>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-5xl">Good afternoon, {residentProfile.firstName}.</h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-emerald-50 sm:text-base">You can share in local solar benefits even without panels on your apartment building.</p>
+        </div>
+      </section>
+      <section className="mt-5 grid gap-4 sm:grid-cols-2" aria-label="Your summary">
+        <Card className="border-0 bg-[var(--wallet)] text-white shadow-[0_16px_35px_rgba(64,50,118,0.18)]">
+          <p className="text-sm text-violet-100">Available balance</p>
+          <p className="mt-2 font-mono text-4xl font-semibold tracking-tight">{formatAud(residentProfile.walletBalance)}</p>
+          <p className="mt-3 text-sm text-violet-100">{formatAud(residentProfile.pendingCredits)} pending from the next event</p>
+          <Link href="/resident/wallet" className="mt-6 inline-flex min-h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-[var(--wallet)]">View wallet</Link>
         </Card>
         <Card>
-          <p className="text-sm text-[var(--muted)]">Next Sunshine Event</p>
-          <p className="mt-3 text-2xl font-semibold">Today, 12–2 pm</p>
-          <p className="mt-3 text-sm text-[var(--muted)]">
-            Your hot water system can shift 4.6 kWh.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div><p className="text-sm font-medium text-[var(--muted)]">Next event</p><h2 className="mt-2 text-2xl font-semibold">{nextEvent.dateLabel}</h2><p className="mt-1 font-medium text-[var(--primary)]">{nextEvent.timeLabel}</p></div>
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">{nextEvent.statusLabel}</span>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-[var(--muted)]">{nextEvent.residentAction}. Community devices will use more local sunshine during this window.</p>
+          <Link href="/resident/events" className="mt-5 inline-flex min-h-11 items-center font-semibold text-[var(--primary)]">See event details →</Link>
         </Card>
-      </div>
+      </section>
+      <section className="mt-5 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+        <Card>
+          <p className="text-xs font-bold tracking-[0.12em] text-[var(--primary)] uppercase">Why you are included</p>
+          <h2 className="mt-3 text-2xl font-semibold">Fair access for residents without a roof</h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{residentPolicy.explanation} Your eligibility does not depend on owning solar, a battery, an EV or a controllable device.</p>
+          <Link href="/resident/status" className="mt-5 inline-flex min-h-11 items-center font-semibold text-[var(--primary)]">Review your status →</Link>
+        </Card>
+        <Card className="bg-[var(--surface-muted)]">
+          <p className="text-sm text-[var(--muted)]">Community impact</p><p className="mt-3 font-mono text-3xl font-semibold">14.7 kWh</p><p className="mt-1 text-sm text-[var(--muted)]">verified in the latest event</p>
+          <div className="mt-5 border-t border-[var(--border)] pt-4"><p className="text-sm font-semibold">Council policy {residentPolicy.version}</p><p className="mt-1 text-xs text-[var(--muted)]">Effective {residentPolicy.effectiveDate}</p></div>
+        </Card>
+      </section>
     </div>
   );
 }

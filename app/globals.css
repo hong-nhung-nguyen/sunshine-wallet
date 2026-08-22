@@ -11,6 +11,8 @@
   --border: #dce4d9;
   --muted: #5f6f65;
   --ring: #267a4d;
+  --resident-bg: #f5f2e8;
+  --wallet: #48377d;
 }
 
 * {
@@ -41,6 +43,22 @@ a {
 ::selection {
   background: #f5cc66;
   color: #17231b;
+}
+
+.resident-hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.resident-hero::after {
+  position: absolute;
+  right: -4rem;
+  bottom: -6rem;
+  width: 15rem;
+  height: 15rem;
+  border: 2.5rem solid rgb(255 205 73 / 18%);
+  border-radius: 999px;
+  content: "";
 }
 
 @media (prefers-reduced-motion: reduce) {
