@@ -20,8 +20,8 @@ export const attributionInput: AttributionInput = {
       qualifyingEnergyKwh: 3.5,
     },
   ],
-  contributorPoolCents: 13070,
-  equityPoolCents: 5140,
+  contributorPoolCents: 3292,
+  equityPoolCents: 1411,
   equityRecipients: [
     {
       participantId: "resident_001",

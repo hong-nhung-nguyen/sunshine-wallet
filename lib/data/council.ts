@@ -1,17 +1,23 @@
 import type { EventStatus, ResourceStatus } from "@/lib/types";
+import { seedData } from "./seed";
+
+const canonicalEvent = seedData.flexEvents.find(({ id }) => id === "event_001")!;
+const canonicalSettlement = seedData.settlements.find(
+  ({ eventId }) => eventId === canonicalEvent.id,
+)!;
 
 export const councilCell = {
   id: "sunshine_cell_01",
-  code: "WLG-NORTH-01",
-  name: "Wollongong North Solar Zone",
-  location: "Wollongong",
+  code: "DAPTO-01",
+  name: "Dapto Sunshine Cell",
+  location: "Dapto",
   constraintRisk: "high",
   solarExportForecastKwh: 70,
   availableFlexEnergyKwh: 31,
   recommendedWindow: "12:00–2:00 pm",
   forecastConfidence: 0.86,
-  activeResidents: 42,
-  roofAccessResidents: 18,
+  activeResidents: 3,
+  roofAccessResidents: 2,
 } as const;
 
 export const councilPolicy = {
@@ -32,8 +38,8 @@ export const councilEvents = [
     maxPowerKw: 18,
     availableFlexEnergyKwh: 31,
     confidence: 0.86,
-    equityFloorPercent: 15,
-    eligibleResources: 24,
+    equityFloorPercent: 20,
+    eligibleResources: 4,
     sunshineCellId: councilCell.id,
     sunshineCellName: councilCell.name,
     windowStart: "2026-08-23T12:00:00+10:00",
@@ -112,13 +118,13 @@ export const councilEvents = [
 ] as const;
 
 export const councilEventCreationFixture = {
-  id: "event_006",
+  id: "draft_event_006",
   name: "Dapto midday solar share",
   status: "draft" satisfies EventStatus,
   statusLabel: "Draft",
   dateLabel: "24 Aug 2026",
   windowLabel: "12:00–2:00 pm",
-  targetFlexEnergyKwh: 72,
+  targetFlexEnergyKwh: 18,
   maxPowerKw: 18,
   availableFlexEnergyKwh: councilCell.availableFlexEnergyKwh,
   confidence: councilCell.forecastConfidence,
@@ -128,7 +134,7 @@ export const councilEventCreationFixture = {
   sunshineCellName: councilCell.name,
   windowStart: "2026-08-24T12:00:00+10:00",
   windowEnd: "2026-08-24T14:00:00+10:00",
-  maxShiftEnergyKwh: 90,
+  maxShiftEnergyKwh: 36,
   explanation:
     "Create a reviewable midday event from the recommended simulated solar forecast. Resource eligibility and optimisation run later.",
   provenance: "Simulated network forecast",
@@ -136,56 +142,56 @@ export const councilEventCreationFixture = {
 
 export const councilResources = [
   {
-    id: "HW-101",
-    name: "Apartment hot water bank",
+    id: "resource_003",
+    name: "Aisha's hot water",
     type: "Hot water",
     status: "available" satisfies ResourceStatus,
-    capacityKwh: 18.4,
-    score: 92,
-    network: 95,
-    equity: 90,
+    capacityKwh: 7.2,
+    score: 91.75,
+    network: 90,
+    equity: 94,
   },
   {
-    id: "BAT-01",
-    name: "Community battery",
-    type: "Battery",
+    id: "resource_001",
+    name: "Maya's hot water",
+    type: "Hot water",
     status: "available" satisfies ResourceStatus,
-    capacityKwh: 24,
-    score: 88,
-    network: 94,
-    equity: 78,
+    capacityKwh: 5.2,
+    score: 90.2,
+    network: 88,
+    equity: 96,
   },
   {
-    id: "EV-204",
-    name: "Council depot chargers",
+    id: "resource_002",
+    name: "Noah's EV charger",
     type: "EV charging",
     status: "available" satisfies ResourceStatus,
-    capacityKwh: 16.5,
-    score: 81,
-    network: 86,
+    capacityKwh: 14.4,
+    score: 87.35,
+    network: 95,
     equity: 72,
   },
   {
-    id: "APT-08",
-    name: "Residential shared load",
-    type: "Community load",
-    status: "pending_review" satisfies ResourceStatus,
-    capacityKwh: 8.2,
-    score: 74,
-    network: 82,
-    equity: 88,
+    id: "resource_004",
+    name: "Noah's home battery",
+    type: "Battery",
+    status: "reserved" satisfies ResourceStatus,
+    capacityKwh: 10,
+    score: 85.4,
+    network: 93,
+    equity: 70,
   },
 ] as const;
 
 export const councilSettlement = {
-  eventId: "event_004",
-  verifiedFlexEnergyKwh: 63.8,
-  totalValue: 182.1,
-  contributorRewards: 130.7,
-  equityCredit: 51.4,
-  equityFloorPercent: 15,
-  confidence: 0.89,
-  status: "settled",
+  eventId: canonicalSettlement.eventId,
+  verifiedFlexEnergyKwh: canonicalSettlement.verifiedFlexEnergyKwh,
+  totalValue: canonicalSettlement.totalValue,
+  contributorRewards: canonicalSettlement.contributorRewards,
+  equityCredit: canonicalSettlement.equityCredit,
+  equityFloorPercent: 20,
+  confidence: canonicalEvent.confidence,
+  status: canonicalSettlement.status,
 } as const;
 
 export const eventStages = [

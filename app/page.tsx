@@ -1,9 +1,18 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { seedData } from "@/lib/data/seed";
+import { formatAud } from "@/lib/formatters";
 
 const stages = ["Identify", "Coordinate", "Verify", "Share"];
 
 export default function HomePage() {
+  const verification = seedData.verificationRecords.find(
+    ({ eventId }) => eventId === "event_001",
+  );
+  const settlement = seedData.settlements.find(
+    ({ eventId }) => eventId === "event_001",
+  );
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-16 sm:py-24">
       <section className="grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr]">
@@ -42,16 +51,22 @@ export default function HomePage() {
         </div>
         <Card className="bg-[var(--primary)] text-white">
           <p className="text-sm text-emerald-100">DAPTO-01 · Event preview</p>
-          <p className="mt-6 font-mono text-5xl font-semibold">63.8 kWh</p>
+          <p className="mt-6 font-mono text-5xl font-semibold">
+            {verification?.verifiedFlexEnergyKwh ?? 0} kWh
+          </p>
           <p className="mt-2 text-emerald-100">verified flexible energy</p>
           <div className="mt-8 grid grid-cols-2 gap-4 border-t border-white/20 pt-6">
             <div>
               <p className="text-sm text-emerald-100">Community value</p>
-              <p className="mt-1 font-mono text-2xl">$182.10</p>
+              <p className="mt-1 font-mono text-2xl">
+                {formatAud(settlement?.totalValue ?? 0)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-emerald-100">Equity credit</p>
-              <p className="mt-1 font-mono text-2xl">$51.40</p>
+              <p className="mt-1 font-mono text-2xl">
+                {formatAud(settlement?.equityCredit ?? 0)}
+              </p>
             </div>
           </div>
         </Card>

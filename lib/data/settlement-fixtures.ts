@@ -8,15 +8,15 @@ export const settlementPolicy: SettlementPolicy = {
   effectiveDate: "1 August 2026",
   equityFloorBps: 2000,
   equityShareBps: 3000,
-  contributorShareBps: 6500,
-  reserveShareBps: 500,
+  contributorShareBps: 7000,
+  reserveShareBps: 0,
 };
 
 export const settlementInput: SettlementInput = {
   eventId: "event_001",
   verificationRecordId: "verification_001",
   verificationGatePassed: true,
-  verifiedFlexEnergyKwh: 63.8,
+  verifiedFlexEnergyKwh: 16.5,
   valueRateCentsPerKwh: 285,
   policy: settlementPolicy,
   createdAt: "2026-08-22T15:00:00+10:00",

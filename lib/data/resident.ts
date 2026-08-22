@@ -3,26 +3,42 @@ import type {
   EventStatus,
   WalletTransaction,
 } from "@/lib/types";
+import { seedData } from "./seed";
+
+const participant = seedData.participants.find(({ id }) => id === "resident_003")!;
+const completedEvent = seedData.flexEvents.find(({ id }) => id === "event_001")!;
+const upcomingEvent = seedData.flexEvents.find(({ id }) => id === "event_006")!;
+const completedVerification = seedData.verificationRecords.find(
+  ({ eventId }) => eventId === completedEvent.id,
+)!;
+const residentEquityCredit = seedData.walletTransactions.find(
+  ({ participantId, eventId, type }) =>
+    participantId === participant.id &&
+    eventId === completedEvent.id &&
+    type === "equity_credit",
+)!;
 
 export const residentProfile = {
-  id: "resident_001",
-  name: "Aisha Patel",
+  id: participant.id,
+  name: participant.name,
   firstName: "Aisha",
-  initials: "AP",
+  initials: "AR",
   householdLabel: "Apartment resident",
   location: "Dapto Sunshine Cell",
-  walletBalance: 28.4,
+  walletBalance: participant.walletBalance ?? 0,
   pendingCredits: 6.2,
-  totalEarned: 82.9,
+  totalEarned: seedData.walletTransactions
+    .filter(({ participantId }) => participantId === participant.id)
+    .reduce((sum, transaction) => sum + transaction.amount, 0),
   consentStatus: "accepted" satisfies ConsentStatus,
   councilEmail: "sunshinewallet-demo@wollongong.example",
 } as const;
 
 export const residentEvents = [
   {
-    id: "event_006",
-    title: "Midday solar share",
-    dateLabel: "Today",
+    id: upcomingEvent.id,
+    title: upcomingEvent.name,
+    dateLabel: "24 Aug 2026",
     timeLabel: "12:00–2:00 pm",
     location: "Dapto Sunshine Cell",
     status: "ready" satisfies EventStatus,
@@ -32,8 +48,8 @@ export const residentEvents = [
     residentAction: "Response needed",
     estimatedCredit: 6.2,
     contribution: {
-      resourceId: "resource_001",
-      resourceLabel: "Apartment hot-water system",
+      resourceId: "resource_003",
+      resourceLabel: "Aisha's hot-water system",
       request:
         "Let the registered hot-water system finish heating during the sunny period instead of later in the evening.",
       expectedShiftKwh: 1.8,
@@ -46,65 +62,28 @@ export const residentEvents = [
     },
   },
   {
-    id: "event_001",
-    title: "Community solar event",
-    dateLabel: "16 Aug 2026",
+    id: completedEvent.id,
+    title: completedEvent.name,
+    dateLabel: "22 Aug 2026",
     timeLabel: "12:00–2:00 pm",
     location: "Dapto Sunshine Cell",
     status: "verified" satisfies EventStatus,
     statusLabel: "Verified",
     description:
-      "The community shifted 14.7 kWh and the result passed Council's verification checks.",
+      `The community shifted ${completedVerification.verifiedFlexEnergyKwh} kWh and the result passed Council's verification checks.`,
     residentAction: "Completed",
-    estimatedCredit: 12.4,
+    estimatedCredit: residentEquityCredit.amount,
     contribution: null,
   },
 ] as const;
 
-export const walletTransactions: readonly WalletTransaction[] = [
-  {
-    id: "credit_101",
-    participantId: residentProfile.id,
-    eventId: "event_001",
-    type: "equity_credit",
-    amount: 12.4,
-    currency: "AUD",
-    status: "posted",
-    createdAt: "2026-08-16T16:00:00+10:00",
-    provenance: {
-      source: "operator_review",
-      notes: "Demo data under Council policy SW-2026-01.",
-    },
-  },
-  {
-    id: "credit_087",
-    participantId: residentProfile.id,
-    eventId: "event_004",
-    type: "equity_credit",
-    amount: 8.75,
-    currency: "AUD",
-    status: "posted",
-    createdAt: "2026-08-09T16:00:00+10:00",
-    provenance: {
-      source: "operator_review",
-      notes: "Demo data under Council policy SW-2026-01.",
-    },
-  },
-  {
-    id: "credit_074",
-    participantId: residentProfile.id,
-    eventId: "event_003",
-    type: "equity_credit",
-    amount: 7.25,
-    currency: "AUD",
-    status: "posted",
-    createdAt: "2026-08-02T16:00:00+10:00",
-    provenance: {
-      source: "operator_review",
-      notes: "Demo data under Council policy SW-2026-01.",
-    },
-  },
-] as const;
+export const walletTransactions: readonly WalletTransaction[] =
+  seedData.walletTransactions.filter(
+    ({ participantId }) => participantId === residentProfile.id,
+  );
+
+export const latestVerifiedFlexEnergyKwh =
+  completedVerification.verifiedFlexEnergyKwh;
 
 export const residentPolicy = {
   version: "SW-2026-01",

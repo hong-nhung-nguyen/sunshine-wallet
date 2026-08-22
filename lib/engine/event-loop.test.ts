@@ -12,7 +12,7 @@ describe("end-to-end event loop", () => {
     expect(result.verification.record.settlementGatePassed).toBe(true);
     expect(result.settlement.status).toBe("calculated");
     expect(result.wallet.postedTransactions[0]).toMatchObject({
-      participantId: "resident_equity_001",
+      participantId: "resident_001",
       type: "equity_credit",
       status: "posted",
     });
