@@ -52,6 +52,8 @@ a {
   background-image: linear-gradient(rgb(17 47 53 / 6%) 1px, transparent 1px),
     linear-gradient(90deg, rgb(17 47 53 / 6%) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
 .resident-hero {
   position: relative;
   isolation: isolate;
