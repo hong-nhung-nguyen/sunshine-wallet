@@ -1,6 +1,8 @@
-import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { latestVerifiedFlexEnergyKwh, residentPolicy } from "@/lib/data/resident";
+import {
+  latestVerifiedFlexEnergyKwh,
+  residentPolicy,
+} from "@/lib/data/resident";
 import { getDemoResident } from "@/lib/demo-session";
 import { formatAud } from "@/lib/formatters";
 
@@ -11,7 +13,7 @@ export default async function ResidentPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <header className="px-1 pb-6 pt-2">
+      <header className="px-1 pt-2 pb-6">
         <p className="text-sm font-medium text-[var(--muted)]">
           {resident.location}
         </p>
@@ -36,12 +38,32 @@ export default async function ResidentPage() {
             </p>
           </div>
           <div className="border-t border-white/15 bg-white/10 p-4 sm:px-7">
-            <Link
-              href="/resident/wallet"
-              className="flex min-h-12 items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-[var(--wallet)] transition-colors hover:bg-violet-50"
-            >
-              View wallet and credits
-            </Link>
+            <details className="group rounded-xl bg-white text-[var(--foreground)]">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-5 text-sm font-semibold text-[var(--wallet)]">
+                Wallet and credit history
+                <span className="text-lg transition-transform group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <div className="border-t border-[var(--border)] px-5 py-2">
+                {resident.recentCredits.map((credit) => (
+                  <div
+                    key={credit.id}
+                    className="flex items-center justify-between gap-4 border-b border-[var(--border)] py-4 last:border-0"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">{credit.label}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        {credit.date} · Posted
+                      </p>
+                    </div>
+                    <p className="font-mono text-sm font-semibold text-[var(--primary)]">
+                      +{formatAud(credit.amount)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </details>
           </div>
         </Card>
 
@@ -68,12 +90,25 @@ export default async function ResidentPage() {
               {latestVerifiedFlexEnergyKwh} kWh verified
             </span>
           </div>
-          <Link
-            href="/resident/wallet"
-            className="mt-5 flex min-h-12 items-center justify-center rounded-xl border border-[var(--primary)] px-5 text-sm font-semibold text-[var(--primary)] transition-colors hover:bg-emerald-50"
-          >
-            See how it worked
-          </Link>
+          <details className="group mt-5 rounded-xl border border-[var(--primary)]">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-5 text-sm font-semibold text-[var(--primary)]">
+              See how it worked
+              <span className="text-lg transition-transform group-open:rotate-45">
+                +
+              </span>
+            </summary>
+            <div className="border-t border-[var(--border)] px-5 py-4 text-sm leading-6 text-[var(--muted)]">
+              <p>
+                The event shifted {latestVerifiedFlexEnergyKwh} kWh into a
+                solar-rich period and passed Council’s verification checks.
+              </p>
+              <p className="mt-2">
+                Your{" "}
+                {contributor ? "verified contribution" : "equity eligibility"}{" "}
+                resulted in a {formatAud(latestCredit.amount)} credit.
+              </p>
+            </div>
+          </details>
         </Card>
 
         <Card className="p-5 sm:p-6">
@@ -100,12 +135,36 @@ export default async function ResidentPage() {
             </strong>
             .
           </p>
-          <Link
-            href="/resident/events"
-            className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]"
-          >
-            View event details →
-          </Link>
+          <details className="group mt-5 border-t border-[var(--border)] pt-1">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-[var(--primary)]">
+              Event details
+              <span className="text-lg transition-transform group-open:rotate-45">
+                +
+              </span>
+            </summary>
+            <dl className="grid grid-cols-2 gap-4 rounded-xl bg-[var(--surface-muted)] p-4 text-sm">
+              <div>
+                <dt className="text-xs text-[var(--muted)]">When</dt>
+                <dd className="mt-1 font-semibold">
+                  {resident.nextEvent.dateLabel}, {resident.nextEvent.timeLabel}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-[var(--muted)]">
+                  Estimated credit
+                </dt>
+                <dd className="mt-1 font-mono font-semibold">
+                  {formatAud(resident.nextEvent.estimatedCredit)}
+                </dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-xs text-[var(--muted)]">
+                  What you need to do
+                </dt>
+                <dd className="mt-1">{resident.nextEvent.action}</dd>
+              </div>
+            </dl>
+          </details>
         </Card>
 
         <Card className="p-5 sm:p-6">
@@ -128,21 +187,37 @@ export default async function ResidentPage() {
                 <dd className="mt-1 font-semibold">{resident.resource.type}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[var(--muted)]">
-                  Shift available
-                </dt>
+                <dt className="text-xs text-[var(--muted)]">Shift available</dt>
                 <dd className="mt-1 font-mono font-semibold">
                   {resident.resource.availableKwh} kWh
                 </dd>
               </div>
             </dl>
           )}
-          <Link
-            href={contributor ? "/resident/events" : "/resident/status"}
-            className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]"
-          >
-            Manage participation →
-          </Link>
+          <details className="group mt-4 border-t border-[var(--border)] pt-1">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-[var(--primary)]">
+              Participation details
+              <span className="text-lg transition-transform group-open:rotate-45">
+                +
+              </span>
+            </summary>
+            <div className="rounded-xl bg-[var(--surface-muted)] p-4 text-sm leading-6 text-[var(--muted)]">
+              <p>
+                Account type:{" "}
+                <strong className="text-[var(--foreground)]">
+                  {resident.participationLabel}
+                </strong>
+              </p>
+              <p className="mt-2">
+                Council policy {residentPolicy.version} has been effective since{" "}
+                {residentPolicy.effectiveDate}.
+              </p>
+              <p className="mt-2">
+                Contact Council if you want to review eligibility, change
+                consent or pause participation.
+              </p>
+            </div>
+          </details>
         </Card>
 
         <div className="flex gap-3 rounded-2xl bg-white/55 p-4 text-sm leading-6 text-[var(--muted)]">
