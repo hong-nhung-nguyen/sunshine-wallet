@@ -1,29 +1,26 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Card } from "@/components/ui/card";
-import {
-  residentEvents,
-  residentPolicy,
-  residentProfile,
-} from "@/lib/data/resident";
+import { getDemoResident } from "@/lib/demo-session";
 import { formatAud } from "@/lib/formatters";
 
-export default function ResidentPage() {
-  const nextEvent = residentEvents[0];
+export default async function ResidentPage() {
+  const resident = await getDemoResident();
+  const contributor = resident.role === "contributor";
   return (
     <div>
       <section className="resident-hero overflow-hidden rounded-[2rem] bg-[var(--primary)] p-6 text-white shadow-[0_22px_55px_rgba(16,75,44,0.18)] sm:p-8">
         <div className="relative z-10 max-w-2xl">
-          <StatusBadge>Included in the community program</StatusBadge>
+          <StatusBadge>{resident.participationLabel}</StatusBadge>
           <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-5xl">
-            Good afternoon, {residentProfile.firstName}.
+            Good afternoon, {resident.firstName}.
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-emerald-50 sm:text-base">
-            You can share in local solar benefits even without panels on your
-            apartment building.
+            {resident.headline}
           </p>
         </div>
       </section>
+
       <section
         className="mt-5 grid gap-4 sm:grid-cols-2"
         aria-label="Your summary"
@@ -31,11 +28,10 @@ export default function ResidentPage() {
         <Card className="border-0 bg-[var(--wallet)] text-white shadow-[0_16px_35px_rgba(64,50,118,0.18)]">
           <p className="text-sm text-violet-100">Available balance</p>
           <p className="mt-2 font-mono text-4xl font-semibold tracking-tight">
-            {formatAud(residentProfile.walletBalance)}
+            {formatAud(resident.walletBalance)}
           </p>
           <p className="mt-3 text-sm text-violet-100">
-            {formatAud(residentProfile.pendingCredits)} pending from the next
-            event
+            {formatAud(resident.pendingCredits)} pending from the next event
           </p>
           <Link
             href="/resident/wallet"
@@ -51,62 +47,91 @@ export default function ResidentPage() {
                 Next event
               </p>
               <h2 className="mt-2 text-2xl font-semibold">
-                {nextEvent.dateLabel}
+                {resident.nextEvent.dateLabel}
               </h2>
               <p className="mt-1 font-medium text-[var(--primary)]">
-                {nextEvent.timeLabel}
+                {resident.nextEvent.timeLabel}
               </p>
             </div>
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
-              {nextEvent.statusLabel}
+              {resident.nextEvent.statusLabel}
             </span>
           </div>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            {nextEvent.residentAction}. Review the request and choose whether
-            your registered hot-water system can take part.
+            {resident.nextEvent.action}
           </p>
           <Link
-            href={`/resident/events/${nextEvent.id}`}
+            href="/resident/events"
             className="mt-5 inline-flex min-h-11 items-center font-semibold text-[var(--primary)]"
           >
-            Review event →
+            View event details →
           </Link>
         </Card>
       </section>
-      <section className="mt-5 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+
+      <section className="mt-5 grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
         <Card>
           <p className="text-xs font-bold tracking-[0.12em] text-[var(--primary)] uppercase">
-            Why you are included
+            {contributor ? "Your contribution" : "Why you are included"}
           </p>
           <h2 className="mt-3 text-2xl font-semibold">
-            Fair access for residents without a roof
+            {contributor
+              ? resident.resource?.name
+              : "Fair access without rooftop solar"}
           </h2>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            {residentPolicy.explanation} Your eligibility does not depend on
-            owning solar, a battery, an EV or a controllable device.
+            {resident.explanation}
           </p>
           <Link
-            href="/resident/status"
+            href={contributor ? "/resident/events" : "/resident/status"}
             className="mt-5 inline-flex min-h-11 items-center font-semibold text-[var(--primary)]"
           >
-            Review your status →
+            {contributor ? "Manage participation" : "Review eligibility"} →
           </Link>
         </Card>
-        <Card className="bg-[var(--surface-muted)]">
-          <p className="text-sm text-[var(--muted)]">Community impact</p>
-          <p className="mt-3 font-mono text-3xl font-semibold">14.7 kWh</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            verified in the latest event
-          </p>
-          <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <p className="text-sm font-semibold">
-              Council policy {residentPolicy.version}
+        {resident.resource ? (
+          <Card className="bg-[var(--surface-muted)]">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-[var(--muted)]">Registered resource</p>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900">
+                {resident.resource.status}
+              </span>
+            </div>
+            <p className="mt-3 text-xl font-semibold">
+              {resident.resource.type}
             </p>
-            <p className="mt-1 text-xs text-[var(--muted)]">
-              Effective {residentPolicy.effectiveDate}
+            <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4">
+              <div>
+                <dt className="text-xs text-[var(--muted)]">Capacity</dt>
+                <dd className="mt-1 font-mono font-semibold">
+                  {resident.resource.capacityKw} kW
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-[var(--muted)]">Shift available</dt>
+                <dd className="mt-1 font-mono font-semibold">
+                  {resident.resource.availableKwh} kWh
+                </dd>
+              </div>
+            </dl>
+          </Card>
+        ) : (
+          <Card className="bg-[var(--surface-muted)]">
+            <p className="text-sm text-[var(--muted)]">Community impact</p>
+            <p className="mt-3 font-mono text-3xl font-semibold">14.7 kWh</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              verified in the latest event
             </p>
-          </div>
-        </Card>
+            <div className="mt-5 border-t border-[var(--border)] pt-4">
+              <p className="text-sm font-semibold">
+                20% community equity floor
+              </p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Applied after verification
+              </p>
+            </div>
+          </Card>
+        )}
       </section>
     </div>
   );

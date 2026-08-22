@@ -1,70 +1,85 @@
-import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { residentEvents } from "@/lib/data/resident";
+import { getDemoResident } from "@/lib/demo-session";
 import { formatAud } from "@/lib/formatters";
 
-export default function EventsPage() {
+export default async function EventsPage() {
+  const resident = await getDemoResident();
+  const contributor = resident.role === "contributor";
   return (
     <div className="mx-auto max-w-3xl">
       <p className="text-sm font-semibold text-[var(--primary)]">
         Sunshine events
       </p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-        Your community events
+        {contributor ? "Your flexibility requests" : "Your community events"}
       </h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-        Events coordinate local devices when Wollongong sunshine is abundant.
-        You can receive an Equity Dividend without owning one of those devices.
+        {contributor
+          ? "Review when your registered resource is requested and what it may earn after verification."
+          : "Follow the local events that fund your Equity Dividend. No device action is required from you."}
       </p>
-      <div className="mt-7 space-y-4">
-        {residentEvents.map((event, index) => (
-          <Card
-            key={event.id}
-            className={index === 0 ? "border-amber-300" : ""}
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-[var(--primary)]">
-                  {event.dateLabel} · {event.timeLabel}
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold">{event.title}</h2>
-              </div>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${index === 0 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}
-              >
-                {event.statusLabel}
-              </span>
-            </div>
-            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-              {event.description}
+      <Card className="mt-7 border-amber-300">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-[var(--primary)]">
+              {resident.nextEvent.dateLabel} · {resident.nextEvent.timeLabel}
             </p>
-            <dl className="mt-5 grid grid-cols-2 gap-4 rounded-2xl bg-[var(--surface-muted)] p-4">
-              <div>
-                <dt className="text-xs text-[var(--muted)]">Your status</dt>
-                <dd className="mt-1 text-sm font-semibold">
-                  {event.residentAction}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-[var(--muted)]">
-                  {index === 0 ? "Estimated credit" : "Credit received"}
-                </dt>
-                <dd className="mt-1 font-mono text-sm font-semibold">
-                  {formatAud(event.estimatedCredit)}
-                </dd>
-              </div>
-            </dl>
-            <Link
-              href={`/resident/events/${event.id}`}
-              className="mt-5 inline-flex min-h-11 items-center font-semibold text-[var(--primary)]"
-            >
-              {event.contribution
-                ? "Review participation request ->"
-                : "View event result ->"}
-            </Link>
-          </Card>
-        ))}
-      </div>
+            <h2 className="mt-2 text-2xl font-semibold">
+              {resident.nextEvent.title}
+            </h2>
+          </div>
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+            {resident.nextEvent.statusLabel}
+          </span>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+          {resident.nextEvent.action}
+        </p>
+        {resident.resource ? (
+          <dl className="mt-5 grid grid-cols-2 gap-4 rounded-2xl bg-[var(--surface-muted)] p-4">
+            <div>
+              <dt className="text-xs text-[var(--muted)]">
+                Requested resource
+              </dt>
+              <dd className="mt-1 text-sm font-semibold">
+                {resident.resource.name}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-[var(--muted)]">Estimated reward</dt>
+              <dd className="mt-1 font-mono text-sm font-semibold">
+                {formatAud(resident.nextEvent.estimatedCredit)}
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900">
+            <b>Eligibility confirmed.</b> Estimated Equity Dividend:{" "}
+            {formatAud(resident.nextEvent.estimatedCredit)} after the event
+            passes verification.
+          </div>
+        )}
+      </Card>
+      <Card className="mt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-[var(--primary)]">
+              16 Aug 2026 · 12:00–2:00 pm
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold">
+              Verified community solar event
+            </h2>
+          </div>
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900">
+            Verified
+          </span>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+          The community shifted 14.7 kWh. The result passed Council verification
+          and your {contributor ? "Contributor Reward" : "Equity Dividend"} was
+          posted.
+        </p>
+      </Card>
     </div>
   );
 }
