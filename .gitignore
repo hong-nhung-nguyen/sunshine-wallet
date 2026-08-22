@@ -1,31 +1,39 @@
 # Dependencies
 node_modules/
 .npm/
-.pnpm/
+.pnpm-store/
 
-# Build outputs
-.next/git remote add origin https://github.com/hong-nhung-nguyen/sunshine-wallet.git
+# Next.js and build output
+.next/
 out/
 dist/
 build/
+*.tsbuildinfo
+
+# Environment files (keep the documented template)
 .env
 .env.*
+!.env.example
 
-# Logs
+# Tests and logs
+coverage/
+playwright-report/
+test-results/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# OS/editor files
+# Hosting
+.vercel/
+
+# OS and editors
 .DS_Store
 Thumbs.db
+.idea/
 .vscode/
 *.swp
 *.swo
 
-# Test coverage
-coverage/
-
-# Local data
+# Local-only data
 *.local

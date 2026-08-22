@@ -1,0 +1,9 @@
+.next
+coverage
+node_modules
+out
+*.pdf
+docs
+specs
+README.md
+CONTRIBUTING.md
