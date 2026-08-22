@@ -22,8 +22,8 @@ export default function LoginPage() {
           check credits shared with you.
         </p>
         <div className="mt-8 rounded-3xl bg-amber-100 p-5 text-sm leading-6 text-amber-950">
-          <b>Prototype login:</b> credentials are not verified by a real
-          authentication provider and should not be reused from another service.
+          <b>Simulation only:</b> these public demo accounts contain invented
+          people, energy readings and credits. Do not enter a real password.
         </div>
       </section>
       <Card className="p-6 sm:p-8">

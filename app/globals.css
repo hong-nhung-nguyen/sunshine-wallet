@@ -36,7 +36,6 @@ body {
   font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
 }
 a {
-  color: inherit;
   text-decoration: none;
 }
 :focus-visible {
