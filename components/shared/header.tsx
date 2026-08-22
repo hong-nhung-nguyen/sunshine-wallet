@@ -8,7 +8,7 @@ const links = [
 
 export function Header() {
   return (
-    <header className="border-b border-[var(--border)] bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white/90 backdrop-blur">
       <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-6 px-5">
         <Link
           href="/"
