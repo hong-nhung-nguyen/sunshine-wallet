@@ -4,17 +4,32 @@ import {
   councilCell,
   councilEvents,
   councilResources,
-  eventStages,
 } from "@/lib/data/council";
+
+const chartTimes = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+];
 
 export default function CouncilPage() {
   const activeEvent = councilEvents[0];
+  const flexibilityCoverage = Math.round(
+    (councilCell.availableFlexEnergyKwh / activeEvent.targetFlexEnergyKwh) *
+      100,
+  );
+
   return (
     <div className="mx-auto max-w-7xl">
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-sm font-semibold text-[var(--council-accent-strong,#956000)]">
-            Operations overview · 22 Aug 2026
+            Operations overview · 23 Aug 2026
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--council-ink)] sm:text-4xl">
             {councilCell.name}
@@ -23,12 +38,20 @@ export default function CouncilPage() {
             {councilCell.code} · Forecast and resource data are simulated
           </p>
         </div>
-        <Link
-          href={`/council/events/${activeEvent.id}`}
-          className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
-        >
-          Open active event →
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/council/demo"
+            className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-teal-800"
+          >
+            See how it worked →
+          </Link>
+          <Link
+            href={`/council/events/${activeEvent.id}`}
+            className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
+          >
+            Open active event →
+          </Link>
+        </div>
       </header>
 
       <section
@@ -41,7 +64,7 @@ export default function CouncilPage() {
             <p className="text-3xl font-semibold capitalize">
               {councilCell.constraintRisk}
             </p>
-            <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800">
+            <span className="text-xs font-semibold text-rose-800">
               Action advised
             </span>
           </div>
@@ -63,12 +86,7 @@ export default function CouncilPage() {
             <span className="text-base font-normal">kWh</span>
           </p>
           <p className="mt-2 text-xs text-emerald-700">
-            {Math.round(
-              (councilCell.availableFlexEnergyKwh /
-                activeEvent.targetFlexEnergyKwh) *
-                100,
-            )}
-            % of event target
+            {flexibilityCoverage}% of event target
           </p>
         </Card>
         <Card>
@@ -80,85 +98,156 @@ export default function CouncilPage() {
         </Card>
       </section>
 
-      <section className="mt-5 grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="metric-grid overflow-hidden">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent-strong,#956000)] uppercase">
-                Forecast context
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold">
-                Midday export opportunity
-              </h2>
-            </div>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold shadow-sm">
-              86% confidence
-            </span>
-          </div>
-          <div
-            className="mt-8 flex h-36 items-end gap-3"
-            aria-label="Simulated solar export forecast from 9 am to 4 pm"
-          >
-            {[28, 45, 68, 92, 100, 84, 57, 32].map((height, index) => (
-              <div
-                key={index}
-                className="flex flex-1 flex-col items-center gap-2"
-              >
-                <div
-                  className={`w-full rounded-t-md ${index >= 3 && index <= 4 ? "bg-[var(--council-accent)]" : "bg-teal-700/25"}`}
-                  style={{ height: `${height}%` }}
-                />
-                <span className="text-[10px] text-[var(--muted)]">
-                  {index + 9}
-                </span>
+      <section className="mt-5" aria-labelledby="forecast-decision-heading">
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-[var(--border)] p-6 sm:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent-strong,#956000)] uppercase">
+                  Today&apos;s event decision
+                </p>
+                <h2
+                  id="forecast-decision-heading"
+                  className="mt-2 text-2xl font-semibold"
+                >
+                  Solar-rich flexibility window
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
+                  The engine compares solar opportunity with baseline demand and
+                  selects the safest window with enough available flexibility.
+                </p>
               </div>
-            ))}
+              <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold">
+                {Math.round(activeEvent.confidence * 100)}% confidence
+              </span>
+            </div>
+            <dl className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <DecisionMetric label="Constraint window" value="12:00–14:00" />
+              <DecisionMetric
+                label="Target flexibility"
+                value={`${activeEvent.targetFlexEnergyKwh} kWh`}
+              />
+              <DecisionMetric
+                label="Available flexibility"
+                value={`${activeEvent.availableFlexEnergyKwh} kWh`}
+              />
+              <DecisionMetric
+                label="Eligible resources"
+                value={`${activeEvent.eligibleResources}`}
+              />
+            </dl>
           </div>
-          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)]">
-            <span>
-              <b className="text-[var(--foreground)]">Recommended:</b>{" "}
-              {councilCell.recommendedWindow}
-            </span>
-            <span>
-              <b className="text-[var(--foreground)]">Source:</b> simulated
-              network forecast
-            </span>
+
+          <div className="p-6 sm:p-8">
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-6">
+              <svg
+                viewBox="0 0 800 280"
+                role="img"
+                aria-labelledby="forecast-chart-title forecast-chart-description"
+                className="h-auto w-full"
+              >
+                <title id="forecast-chart-title">
+                  Daily solar opportunity and baseline demand
+                </title>
+                <desc id="forecast-chart-description">
+                  Solar opportunity rises above baseline demand around midday.
+                  The selected event window is noon to 2 pm.
+                </desc>
+                {[40, 90, 140, 190, 240].map((y) => (
+                  <line
+                    key={y}
+                    x1="52"
+                    y1={y}
+                    x2="772"
+                    y2={y}
+                    stroke="#dce4d9"
+                    strokeWidth="1"
+                  />
+                ))}
+                <rect
+                  x="310"
+                  y="24"
+                  width="205"
+                  height="216"
+                  fill="#f2b84b"
+                  fillOpacity="0.12"
+                  stroke="#e3a008"
+                  strokeWidth="2"
+                />
+                <polyline
+                  points="52,220 155,202 258,150 361,78 464,42 567,62 670,145 772,215"
+                  fill="none"
+                  stroke="#dc7f19"
+                  strokeWidth="4"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+                <polyline
+                  points="52,168 155,172 258,176 361,178 464,180 567,174 670,164 772,157"
+                  fill="none"
+                  stroke="#246b9a"
+                  strokeWidth="4"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+                {chartTimes.map((label, index) => (
+                  <text
+                    key={label}
+                    x={52 + index * 102.85}
+                    y="265"
+                    textAnchor="middle"
+                    fontSize="12"
+                    fill="#5f6f65"
+                  >
+                    {label}
+                  </text>
+                ))}
+                <text
+                  x="412"
+                  y="226"
+                  textAnchor="middle"
+                  fontSize="13"
+                  fontWeight="700"
+                  fill="#956000"
+                >
+                  Selected · 12:00–14:00
+                </text>
+              </svg>
+              <div
+                className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)]"
+                aria-label="Chart legend"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <i className="h-0.5 w-8 bg-orange-600" />
+                  Solar opportunity
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <i className="h-0.5 w-8 bg-sky-700" />
+                  Baseline demand
+                </span>
+                <span>Source: simulated network forecast</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-[var(--surface-muted)] px-6 py-5 sm:px-8">
+            <div>
+              <p className="font-semibold text-[var(--council-ink)]">
+                Event proposed for 12:00–14:00
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                {activeEvent.targetFlexEnergyKwh} kWh is required and{" "}
+                {activeEvent.availableFlexEnergyKwh} kWh is available, so this
+                window passes the flexibility gate.
+              </p>
+            </div>
             <Link
-              href="/council/windows"
-              className="font-semibold text-teal-800"
+              href={`/council/events/${activeEvent.id}`}
+              className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
             >
-              Review selection →
+              Review proposed event →
             </Link>
           </div>
-        </Card>
-
-        <Card className="bg-[var(--council-ink)] text-white">
-          <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent)] uppercase">
-            Latest event
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold">{activeEvent.name}</h2>
-          <p className="mt-2 text-sm text-slate-300">
-            Target {activeEvent.targetFlexEnergyKwh} kWh · max{" "}
-            {activeEvent.maxPowerKw} kW
-          </p>
-          <ol className="mt-7 space-y-2" aria-label="Event workflow">
-            {eventStages.map((stage, index) => (
-              <li
-                key={stage}
-                className={`flex items-center gap-3 rounded-xl p-3 ${index === eventStages.length - 1 ? "bg-white text-[var(--council-ink)]" : "border border-white/10 text-slate-400"}`}
-              >
-                <span
-                  className={`grid size-7 place-items-center rounded-full font-mono text-xs ${index === eventStages.length - 1 ? "bg-[var(--council-accent)]" : "bg-white/5"}`}
-                >
-                  {index + 1}
-                </span>
-                <span className="text-sm font-semibold">{stage}</span>
-                {index === eventStages.length - 1 && (
-                  <span className="ml-auto text-xs">Current</span>
-                )}
-              </li>
-            ))}
-          </ol>
         </Card>
       </section>
 
@@ -235,6 +324,20 @@ export default function CouncilPage() {
           </div>
         </Card>
       </section>
+    </div>
+  );
+}
+
+function DecisionMetric({
+  label,
+  value,
+}: Readonly<{ label: string; value: string }>) {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+      <dt className="text-sm text-[var(--muted)]">{label}</dt>
+      <dd className="mt-2 font-mono text-2xl font-semibold text-[var(--council-ink)]">
+        {value}
+      </dd>
     </div>
   );
 }

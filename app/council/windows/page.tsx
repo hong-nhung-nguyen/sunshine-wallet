@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import {
   eventWindowCandidates,
@@ -22,13 +23,19 @@ export default function EventWindowsPage() {
 
   return (
     <div className="mx-auto max-w-7xl">
+      <Link
+        href="/council/events"
+        className="inline-flex min-h-11 items-center text-sm font-semibold text-teal-800"
+      >
+        ← Back to events
+      </Link>
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-sm font-semibold text-[var(--council-accent-strong,#956000)]">
-            Event selection · DAPTO-01
+            Window decision · DAPTO-01
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--council-ink)] sm:text-4xl">
-            Choose the useful sunshine window
+            Why this window was selected
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
             A deterministic rule compares simulated forecast windows for one

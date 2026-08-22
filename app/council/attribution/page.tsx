@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { flexibleResources, participants } from "@/lib/data";
 import { attributionInput } from "@/lib/data/attribution-fixtures";
@@ -28,9 +29,12 @@ export default function AttributionPage() {
             Rewards and roof-access Equity Dividends remain separate.
           </p>
         </div>
-        <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-900">
-          Calculated attribution · Council review
-        </span>
+        <Link
+          href="/council/settlement"
+          className="inline-flex min-h-11 items-center rounded-full border border-[var(--council-ink)] px-5 text-sm font-semibold text-[var(--council-ink)] hover:bg-white"
+        >
+          See settlement calculation →
+        </Link>
       </header>
 
       <section

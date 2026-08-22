@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { flexEvents, flexibleResources } from "@/lib/data";
 import { resourceEligibilityContexts } from "@/lib/data/resource-eligibility-contexts";
@@ -36,9 +37,12 @@ export default function ResourcesPage() {
             rejected result to see the checks that failed.
           </p>
         </div>
-        <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-900">
-          Eligibility checks complete
-        </span>
+        <Link
+          href="/council/optimisation"
+          className="inline-flex min-h-11 items-center rounded-full border border-[var(--council-ink)] px-5 text-sm font-semibold text-[var(--council-ink)] hover:bg-white"
+        >
+          See selection calculation →
+        </Link>
       </header>
 
       <section
