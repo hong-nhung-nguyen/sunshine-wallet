@@ -9,7 +9,8 @@ const navItems = [
   { href: "/council/windows", label: "Windows", mark: "03" },
   { href: "/council/resources", label: "Resources", mark: "04" },
   { href: "/council/optimisation", label: "Optimisation", mark: "05" },
-  { href: "/council/settlement", label: "Settlement", mark: "06" },
+  { href: "/council/simulation", label: "Simulation", mark: "06" },
+  { href: "/council/settlement", label: "Settlement", mark: "07" },
 ] as const;
 
 export function CouncilNav() {
