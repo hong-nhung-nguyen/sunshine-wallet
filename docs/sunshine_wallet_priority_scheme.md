@@ -28,8 +28,8 @@ The purpose of the scheme is to make sure households facing energy disadvantage 
 
 | Pool | Share | Purpose |
 |---|---:|---|
-| Equity Pool | 60% | Distributed to participating households according to priority score |
-| Solar Pool | 35% | Distributed equally among enrolled solar owners |
+| Equity Pool | 60% | Distributed to participating households **who do not draw from the Solar Pool**, by priority cell then by priority score (§12) |
+| Solar Pool | 35% | Distributed equally among enrolled solar owners, who are excluded from the Equity Pool |
 | Community Reserve | 5% | Supports low-yield months, crisis top-ups, trial credits, and community projects |
 
 ### Structural rule
@@ -70,23 +70,22 @@ equityPct + solarPct + communityPct === 100
 60% × $4,360 = $2,616
 ```
 
-Distributed in proportion to household priority scores.
+Distributed across the **210 participants who are not enrolled solar contributors** — the 90 contributors are paid from the Solar Pool instead (§12.1).
 
-Modelled rate:
-
-```text
-approximately $0.20 per priority point per month
-```
-
-The actual rate is not fixed.
+The pool is divided in two stages (§12.3, §12.4):
 
 ```text
-perPointRate =
-  equityPool /
-  totalPriorityPointsAcrossAllParticipants
+1. equity pool -> 12 cell blocks
+     block = pool × (tierWeight × n) / Σ(tierWeight × n)
+
+2. block -> households in that cell
+     rate   = block / cellPoints
+     credit = score × rate
 ```
 
-A larger value pot means every priority point becomes worth more.
+Modelled cell rates on this roll range from `$0.1978` to `$0.4945` per point — see §13 for all twelve. There is no single feeder-wide rate.
+
+A larger value pot makes every block larger, so every point in every cell becomes worth more.
 
 #### Solar Pool
 
@@ -277,9 +276,11 @@ needScore = factorA + factorB + factorC + factorD
 | 20–39 | Moderate | Eligible |
 | 0–19 | Standard | Contributor only — no hardship rate |
 
-Tiers are primarily for eligibility and reporting.
+Tiers drive eligibility, reporting, **and** the size of the block a household's cell draws from the Equity Pool (§12.3).
 
-Financial distribution still uses the household's total priority score, which avoids sudden payment jumps at tier boundaries.
+Within a block, distribution still uses the household's total priority score, so there are no jumps *inside* a tier. There is a step *between* tiers — that is the deliberate consequence of block allocation, and §12.7 sets out the assertions that keep it monotonic and reviewable.
+
+Because tiers now carry money, the rule that they come from Factors A–D only matters more than before: **Factor E can never move a household across a tier boundary.** Capability changes a household's score within its cell, never which block it draws from.
 
 ---
 
@@ -309,59 +310,158 @@ priorityScore = 100
 
 # 12. Equity Pool Credit
 
-The Equity Pool is distributed according to total priority points.
+The Equity Pool is **not** divided by a single global per-point rate, and it is **not** paid to households that draw from the Solar Pool.
+
+## 12.1 Eligibility — one pool per household
 
 ```ts
-perPointRate =
-  equityPoolValue /
-  totalPriorityPoints;
+equityEligible = !household.receivesSolarPool;
 ```
 
-For each household:
+Solar *ownership* is not the test — **receiving a Solar Pool payment** is. A tenant in social or community housing with landlord-owned panels and no contributor enrolment is not compensated as a producer, so they keep their equity credit. This resolves the perception issue recorded in §28: producer compensation and hardship support never stack on the same household.
+
+Removing contributors shrinks the divisor, which **raises** the value of every remaining household's points. The council UI should show this as a visible consequence, not bury it.
+
+## 12.2 Groups — the twelve priority cells
+
+The eligible roll is partitioned into the twelve cells of the priority matrix: four need tiers × three capability classes.
+
+Capability class maps from Factor E:
+
+| Factor E answer | Points | Capability class |
+|---|---:|---|
+| Individual storage tank on own controlled-load circuit | 15 | `individual_tank` |
+| Shared/site storage tank | 8 | `shared_or_other` |
+| Other controllable load — EV charger, pool pump, home battery | 4 | `shared_or_other` |
+| Instantaneous electric, gas, or no controllable load | 0 | `none` |
+
+> Factor E has four levels but the matrix has three columns. `Other controllable load` (4 points) shares the middle class with the shared tank. Their points still differ *inside* the cell, so the fold changes grouping only — it never alters a score.
+
+## 12.3 Block share — tier weight × headcount
+
+Each cell takes a block of the pool proportional to its weight. The block is recomputed at every settlement, so it tracks the roll as it changes.
 
 ```ts
+tierWeight = {
+  critical: 4,
+  high:     3,
+  moderate: 2,
+  standard: 1,
+};
+
+capabilityWeight = {
+  individual_tank:  1,
+  shared_or_other:  1,
+  none:             1,
+};
+
+cellWeight =
+  tierWeight[cell.tier] *
+  capabilityWeight[cell.capability] *
+  cell.claimantCount;
+
+cellBlock =
+  equityPool *
+  cellWeight /
+  totalCellWeight;
+```
+
+`claimantCount` counts only households with `priorityScore > 0`. A zero-point household has no claim and adds no weight, so it cannot pull a block toward a cell it will not draw from.
+
+Both weight tables are **governance policy**, versioned and votable alongside the 60/35/5 split (§17, §22).
+
+## 12.4 Within a cell — divide by priority points
+
+```ts
+cellRate =
+  cellBlock /
+  cellPriorityPoints;
+
 equityCredit =
   household.priorityScore *
-  perPointRate;
+  cellRate;
 ```
 
-Example at `$0.20/point`:
+Every cell has its own rate. There is no longer one headline `$/point` figure for the feeder — the operator console must show twelve, or show the per-tier average and label it as an average.
 
-```text
-70 points × $0.20 = $14.00/month
+## 12.5 What the default weights actually do
+
+With `capabilityWeight` flat at 1, the three cells inside a tier draw blocks proportional to headcount alone. The consequence is deliberate and worth stating plainly:
+
+> **Average credit is equal across capability classes within a tier.** Factor E moves a household's position inside its cell, but not the money that flows to its cell.
+
+That is the strongest available reading of "need must dominate contribution" (§4). Contribution capability is compensated through participation and, for producers, through the Solar Pool — not through a larger share of hardship support.
+
+If the community votes to reward capability from the equity pool, raise `capabilityWeight.individual_tank` above 1. That is a governance decision, and it must be re-checked against the Inversion Test (§15) before it takes effect.
+
+## 12.6 Rounding
+
+All arithmetic in **integer cents**, distributed by largest remainder at both levels — pool → twelve blocks, then block → households. The invariant is exact, not approximate:
+
+```ts
+sum(allEquityCredits) === equityPoolCents;
 ```
+
+If no household is eligible, the whole pool is undistributed and carries to the Community Reserve rather than being silently dropped.
+
+## 12.7 Trade-off to keep visible
+
+Grouping reintroduces a boundary effect the flat rate did not have. §10 justified the flat rate as avoiding "sudden payment jumps at tier boundaries" — with blocks, a household at need 59 (High) and one at need 60 (Critical) now draw from differently sized blocks.
+
+Required mitigations:
+
+1. Assert **monotonicity** — average credit per household must not increase as need tier falls (Critical ≥ High ≥ Moderate ≥ Standard).
+2. Surface boundary pairs in the operator console so a household sitting one point below a tier line is visible to review.
+3. Never let a tier boundary be crossed by a capability point. Tiers come from Factors A–D only (§10), so Factor E cannot move a household between blocks.
 
 ---
 
 # 13. Example Priority Outcomes
 
-Illustrative need scores:
+Modelled on the Dapto East roll: **300 participants, 90 enrolled solar contributors excluded, 210 equity-eligible**, equity pool `$2,616.00`.
 
-- Critical = 70
-- High = 50
-- Moderate = 30
-- Standard = 10
+Illustrative need scores: Critical = 70 · High = 50 · Moderate = 30 · Standard = 10.
 
-Example rate:
+| Tier | Capability | n | Cell points | Weight | Block | Block % | Cell $/pt | Credit each |
+|---|---|--:|--:|--:|--:|--:|--:|--:|
+| Critical | Individual tank | 14 | 1,190 | 56 | $276.93 | 10.6% | $0.2327 | **$19.79** |
+| Critical | Shared / other | 10 | 780 | 40 | $197.81 | 7.6% | $0.2536 | **$19.79** |
+| Critical | None / apartment | 18 | 1,260 | 72 | $356.05 | 13.6% | $0.2826 | **$19.79** |
+| High | Individual tank | 22 | 1,430 | 66 | $326.38 | 12.5% | $0.2282 | **$14.84** |
+| High | Shared / other | 16 | 928 | 48 | $237.37 | 9.1% | $0.2558 | **$14.84** |
+| High | None / apartment | 26 | 1,300 | 78 | $385.72 | 14.7% | $0.2967 | **$14.84** |
+| Moderate | Individual tank | 25 | 1,125 | 50 | $247.26 | 9.5% | $0.2198 | **$9.90** |
+| Moderate | Shared / other | 18 | 684 | 36 | $178.03 | 6.8% | $0.2603 | **$9.90** |
+| Moderate | None / apartment | 22 | 660 | 44 | $217.59 | 8.3% | $0.3297 | **$9.90** |
+| Standard | Individual tank | 14 | 350 | 14 | $69.23 | 2.6% | $0.1978 | **$4.95** |
+| Standard | Shared / other | 11 | 198 | 11 | $54.40 | 2.1% | $0.2747 | **$4.95** |
+| Standard | None | 14 | 140 | 14 | $69.23 | 2.6% | $0.4945 | **$4.95** |
+| | | **210** | | **529** | **$2,616.00** | **100%** | | |
 
-```text
-$0.20 per point per month
-```
+Blocks sum to the pool to the cent. Credits sum to the pool to the cent.
 
-| Tier | Capability | Need | Contribution | Total | Equity Credit |
-|---|---|---:|---:|---:|---:|
-| Critical | Individual tank | 70 | 15 | 85 | $17.00 |
-| Critical | Shared tank | 70 | 8 | 78 | $15.60 |
-| Critical | None / apartment | 70 | 0 | 70 | $14.00 |
-| High | Individual tank | 50 | 15 | 65 | $13.00 |
-| High | Shared tank | 50 | 8 | 58 | $11.60 |
-| High | None / apartment | 50 | 0 | 50 | $10.00 |
-| Moderate | Individual tank | 30 | 15 | 45 | $9.00 |
-| Moderate | Shared tank | 30 | 8 | 38 | $7.60 |
-| Moderate | None / apartment | 30 | 0 | 30 | $6.00 |
-| Standard | Individual tank | 10 | 15 | 25 | $5.00 |
-| Standard | Shared tank | 10 | 8 | 18 | $3.60 |
-| Standard | None | 10 | 0 | 10 | $2.00 |
+### Read the last two columns together
+
+The cell rate is *highest* where capability is lowest — `$0.4945/pt` for Standard/none against `$0.1978/pt` for Standard/tank. That is the mechanism doing its job: the block is set by need and headcount, so a cell holding fewer points per household converts each point into more money. The credit column lands flat within each tier as a result.
+
+### What changed against the old flat rate
+
+The flat model would have produced `$0.2604/pt` across the whole roll:
+
+| Cell | Flat rate | Grouped | Change |
+|---|--:|--:|--:|
+| Critical / individual tank | $22.14 | $19.79 | −$2.35 |
+| Critical / none | $18.23 | $19.79 | **+$1.56** |
+| High / none | $13.02 | $14.84 | **+$1.82** |
+| Moderate / none | $7.81 | $9.90 | **+$2.09** |
+| Standard / individual tank | $6.51 | $4.95 | −$1.56 |
+| Standard / none | $2.60 | $4.95 | **+$2.35** |
+
+The model compresses payments *within* a tier and separates them *between* tiers. Households with high need and no equipment gain; households with low need and good equipment lose. Both movements are the intended direction of travel.
+
+### Note on these figures
+
+The per-cell headcounts above are **modelled seed data** for the Dapto East demonstration, not observed. The rates and blocks are recomputed from the live roll at every settlement — none of the numbers in this table are constants in the system.
 
 ---
 
@@ -372,8 +472,10 @@ Solar compensation is separate from the Equity Pool.
 Eligibility:
 
 ```text
-hasSolar === true
+receivesSolarPool === true
 ```
+
+Enrolment as a contributor, not `hasSolar`. Panels a household does not earn from make it a solar owner, not a Solar Pool recipient.
 
 Calculation:
 
@@ -390,15 +492,22 @@ Every enrolled solar owner gets the same Solar Pool payment regardless of:
 - kWh generated,
 - priority score.
 
-A household may receive from both pools.
+### A household draws from one pool, not both
+
+A household paid from the Solar Pool is **excluded from the Equity Pool** for that period (§12.1).
 
 ```ts
 totalHouseholdCredit =
-  equityCredit +
-  solarCredit;
+  household.receivesSolarPool
+    ? solarCredit
+    : equityCredit;
 ```
 
-if they are eligible for both.
+The two pools answer different questions — *what did you produce* and *what disadvantage do you face* — and paying one household from both was the source of the perception problem in §28. Producer compensation is not hardship support and must not be presented as topping it up.
+
+Enrolment is the switch, not ownership. A household with panels it does not earn from is an equity participant like any other.
+
+**Partial-period enrolment:** a household that enrols as a contributor mid-period is paid from the Solar Pool pro-rata by `daysEnrolled / daysInPeriod`, and is excluded from the Equity Pool for the whole period. Do not split one household across both pools within a period — it breaks both divisors and is impossible to explain on a statement.
 
 ---
 
@@ -416,7 +525,8 @@ Example:
 Need = 70
 Contribution = 0
 Priority = 70
-Equity credit = $14.00
+Cell = critical / none  ->  $0.2826/pt
+Equity credit = $19.79
 ```
 
 ### Standard household with best device
@@ -425,23 +535,44 @@ Equity credit = $14.00
 Need = 10
 Contribution = 15
 Priority = 25
-Equity credit = $5.00
+Cell = standard / individual_tank  ->  $0.1978/pt
+Equity credit = $4.95
 ```
 
 Result:
 
 ```text
-$14.00 > $5.00
+$19.79 > $4.95   (4.0x)
 ```
+
+Under the old flat rate the same comparison was `$14.00 > $5.00` (2.8×). Cell grouping widens the margin, because tier weight now drives the block rather than a raw point total in which fifteen capability points counted the same as fifteen need points.
 
 ### Automated assertion
 
+Compare the **worst case in the strongest need cell against the best case in the weakest**, not two hand-picked archetypes:
+
 ```ts
 assert(
-  criticalNoDeviceEquityCredit >
-  standardBestDeviceEquityCredit
+  min(creditsIn("critical", "none")) >
+  max(creditsIn("standard", "individual_tank"))
 );
 ```
+
+Vacuously true when either cell is empty — report it as `PASS (cell empty)` rather than hiding the condition.
+
+### Second assertion — tier monotonicity
+
+Cell grouping makes a new failure possible that the flat rate could not produce: an unusual weight configuration or a lopsided roll inverting two adjacent tiers. Assert it directly:
+
+```ts
+assert(
+  avgCredit("critical") >= avgCredit("high") &&
+  avgCredit("high")     >= avgCredit("moderate") &&
+  avgCredit("moderate") >= avgCredit("standard")
+);
+```
+
+The governance UI must refuse any `capabilityWeight` or `tierWeight` edit that breaks either assertion, the same way it refuses `equityPct < 60`.
 
 UI suggestion:
 
@@ -457,8 +588,11 @@ The operator interface should surface this as a visible fairness check.
 
 | Output | Driven By |
 |---|---|
-| Share of Equity Pool | Total priority score × per-point rate |
-| Share of Solar Pool | Solar ownership only; equal flat share |
+| Equity Pool eligibility | Not drawing from the Solar Pool |
+| Which equity cell you sit in | Need tier (Factors A–D) × capability class (Factor E) |
+| Size of your cell's block | Tier weight × claimant headcount in that cell |
+| Your share of that block | Total priority score ÷ cell points |
+| Share of Solar Pool | Solar contributor enrolment only; equal flat share |
 | Physical-channel enrolment | Need tier ≥ Moderate and suitable capability |
 | Rotation priority when surplus is limited | Fairness counter first, then need tier as tiebreak |
 | Delivery mode | Factors A + D |
@@ -554,10 +688,14 @@ E = 15
 Priority = 61
 ```
 
-At `$0.20/point`:
+Cell and credit, at the §13 modelled rates:
 
 ```text
-Equity credit = $12.20/month
+Need 46      -> tier High
+Factor E 15  -> capability individual_tank
+Cell         -> high / individual_tank  @ $0.2282/pt
+
+Equity credit = 61 x $0.2282 = $13.92/month
 ```
 
 Delivery:
@@ -592,10 +730,14 @@ E = 0
 Priority = 75
 ```
 
-Credit:
+Cell and credit:
 
 ```text
-$15.00/month
+Need 75      -> tier Critical
+Factor E 0   -> capability none
+Cell         -> critical / none  @ $0.2826/pt
+
+Equity credit = 75 x $0.2826 = $21.20/month
 ```
 
 Delivery:
@@ -604,7 +746,7 @@ Delivery:
 program credit
 ```
 
-Aroha contributes nothing physically but can still be one of the highest earners from the Equity Pool.
+Aroha contributes nothing physically and is the **highest earner from the Equity Pool** in these worked examples. Under the old flat rate she earned $15.00, below Dinh's tank-owning household on 61 points. Cell grouping is what puts her above him, and that is the entire point of the change: the critical/none cell has the largest block and the fewest points to divide it by.
 
 ---
 
@@ -633,10 +775,14 @@ E = 8
 Priority = 51
 ```
 
-Credit:
+Cell and credit:
 
 ```text
-$10.20/month each
+Need 43      -> tier High
+Factor E 8   -> capability shared_or_other
+Cell         -> high / shared_or_other  @ $0.2558/pt
+
+Equity credit = 51 x $0.2558 = $13.05/month
 ```
 
 Participation:
@@ -673,25 +819,29 @@ E = 15
 Priority = 18
 ```
 
-Equity credit:
+Maria is an enrolled solar contributor, so she is excluded from the Equity Pool:
 
 ```text
-$3.60
+receivesSolarPool = true
+
+Equity credit = $0.00      (excluded, not scored to zero)
+Solar credit  = $16.96
+Total         = $16.96/month
 ```
 
-Solar credit:
+Her priority score of 18 is still computed and still stored — it drives eligibility gates and reporting — but it does not draw from the Equity Pool while she is enrolled as a contributor.
+
+Maria's payment is **entirely producer compensation**. Under the previous model she received $20.56, of which $3.60 came from the hardship pool despite no hardship indicators. That $3.60 now stays in the Equity Pool, and the 90 excluded contributors together return roughly $324 of the $2,616 to the 210 households the pool exists for.
+
+**The comparison to keep honest:** on this roll the §28 inversion is gone — Aroha, a critical-need apartment renter with no device, receives **$21.20** against Maria's **$16.96**. Under the previous model Maria took $20.56 against Aroha's $15.00, and the ordering was the wrong way round.
+
+That reversal is a **property of this roll, not a structural guarantee.** The Solar Pool is a flat 35% divided by contributor headcount, so if contributor numbers fall while the equity roll grows, a solar owner can overtake a critical-need household again without any rule changing. The system must therefore *report* the comparison every settlement rather than assume it:
 
 ```text
-$16.96
+Highest equity credit  vs  solar credit per owner
 ```
 
-Total:
-
-```text
-$20.56/month
-```
-
-Most of Maria's payment is producer compensation rather than hardship support.
+If it inverts, that is a governance signal to revisit the 60/35/5 split (§17) — not a bug in the allocator.
 
 ---
 
@@ -707,25 +857,32 @@ Verified Program Value
 Three-Way Split
         ↓
 ┌───────────────────────────────┐
-│ Equity Pool                   │
-│ Solar Pool                    │
-│ Community Reserve             │
+│ Equity Pool  │ Solar │ Reserve│
 └───────────────────────────────┘
-        ↓
-Equity Pool / Total Priority Points
-        ↓
-Per-Point Rate
-        ↓
-Household Equity Credits
-
-Solar Pool / Number of Solar Owners
-        ↓
-Equal Solar Credit
-
-Reserve
-        ↓
-Accumulate for approved uses
+    ↓              ↓         ↓
+    │              │         └─ Accumulate for approved uses
+    │              │
+    │              └─ Solar Pool / contributor count
+    │                        ↓
+    │                 Equal Solar Credit
+    │                        ↓
+    │                 These households are REMOVED
+    │                 from the equity roll ──────┐
+    │                                            │
+    └─ Equity roll = participants NOT paid ←─────┘
+       from the Solar Pool
+                ↓
+       Partition into 12 cells
+       (need tier × capability class)
+                ↓
+       Block per cell = pool × (tierWeight × n) / Σ(tierWeight × n)
+                ↓
+       Cell rate = block / cell priority points
+                ↓
+       Household equity credit = score × cell rate
 ```
+
+The order matters: **the solar roll is settled first**, because it determines who is on the equity roll. Computing them in parallel from the same household list is the classic way to pay someone twice.
 
 Pseudocode:
 
@@ -735,6 +892,8 @@ function settleProgram({
   equityPct,
   solarPct,
   communityPct,
+  tierWeight,
+  capabilityWeight,
   households,
 }) {
   if (equityPct < 60) {
@@ -754,40 +913,88 @@ function settleProgram({
   const communityReserve =
     totalVerifiedValue * (communityPct / 100);
 
-  const totalPriorityPoints =
-    households.reduce(
-      (sum, household) =>
-        sum + household.priorityScore,
-      0
-    );
-
-  const perPointRate =
-    equityPool / totalPriorityPoints;
-
-  const solarOwners =
+  // 1. Solar first — it decides who is on the equity roll.
+  const contributors =
     households.filter(
-      household => household.hasSolar
+      household => household.receivesSolarPool
     );
 
   const solarCredit =
-    solarOwners.length > 0
-      ? solarPool / solarOwners.length
+    contributors.length > 0
+      ? solarPool / contributors.length
       : 0;
+
+  // 2. Equity roll excludes contributors and zero-point households.
+  const equityRoll =
+    households.filter(
+      household =>
+        !household.receivesSolarPool &&
+        household.priorityScore > 0
+    );
+
+  // 3. Partition into the twelve priority cells.
+  const cells = groupBy(
+    equityRoll,
+    household => [
+      household.needTier,
+      household.capabilityClass,
+    ]
+  );
+
+  const cellWeight = cell =>
+    tierWeight[cell.tier] *
+    capabilityWeight[cell.capability] *
+    cell.members.length;
+
+  const totalWeight =
+    cells.reduce(
+      (sum, cell) => sum + cellWeight(cell),
+      0
+    );
+
+  // 4. Block per cell, then points within the cell.
+  const rates = new Map();
+
+  for (const cell of cells) {
+    const block =
+      equityPool * cellWeight(cell) / totalWeight;
+
+    const cellPoints =
+      cell.members.reduce(
+        (sum, household) =>
+          sum + household.priorityScore,
+        0
+      );
+
+    rates.set(cell.key, block / cellPoints);
+  }
 
   return households.map(household => ({
     ...household,
 
     equityCredit:
-      household.priorityScore *
-      perPointRate,
+      household.receivesSolarPool
+        ? 0
+        : household.priorityScore *
+          (rates.get(cellKeyOf(household)) ?? 0),
 
     solarCredit:
-      household.hasSolar
+      household.receivesSolarPool
         ? solarCredit
         : 0,
   }));
 }
 ```
+
+Edge cases the implementation must handle rather than divide by zero:
+
+| Case | Behaviour |
+|---|---|
+| No contributors enrolled | `solarCredit = 0`; the Solar Pool carries to the Community Reserve |
+| No equity-eligible households | Whole Equity Pool carries to the Community Reserve |
+| A cell with zero members | Weight 0, block 0 — never appears in the divisor |
+| A household with `priorityScore = 0` | Off the roll entirely; adds no weight and receives nothing |
+| Rounding | Integer cents, largest remainder at both levels; `Σ credits === pool` exactly |
 
 ---
 
@@ -815,13 +1022,23 @@ type Household = {
     | "moderate"
     | "standard";
 
+  capabilityClass:
+    | "individual_tank"
+    | "shared_or_other"
+    | "none";
+
   deliveryMode:
     | "bill_credit"
     | "program_credit"
     | "voucher"
     | "debt_reduction";
 
+  // Ownership — a physical fact about the property.
   hasSolar: boolean;
+
+  // Enrolment — decides which pool pays this household.
+  // Only this field gates Equity Pool eligibility.
+  receivesSolarPool: boolean;
 
   lifeSupportFlag: boolean;
 
@@ -829,6 +1046,10 @@ type Household = {
   solarCredit?: number;
 };
 ```
+
+`hasSolar` and `receivesSolarPool` are **separate fields and must stay separate.** Collapsing them into one boolean is the change that would drop a social-housing tenant with landlord-owned panels out of both pools (§12.1).
+
+`needTier` and `capabilityClass` are derived, not entered — recompute them from the factor scores at settlement rather than trusting a stored value, so a re-scored household lands in the right cell.
 
 ---
 
@@ -844,6 +1065,20 @@ type GovernancePolicy = {
 
   minimumEquityPct: 60;
 
+  // Block weights for the twelve equity cells (§12.3).
+  tierWeight: {
+    critical: number;   // default 4
+    high: number;       // default 3
+    moderate: number;   // default 2
+    standard: number;   // default 1
+  };
+
+  capabilityWeight: {
+    individual_tank: number;   // default 1
+    shared_or_other: number;   // default 1
+    none: number;              // default 1
+  };
+
   effectiveDate: string;
   approvedBy: string;
 };
@@ -857,14 +1092,41 @@ function validatePolicy(policy: GovernancePolicy) {
     return false;
   }
 
-  return (
+  if (
     policy.equityPct +
       policy.solarPct +
-      policy.communityPct ===
+      policy.communityPct !==
     100
-  );
+  ) {
+    return false;
+  }
+
+  // Every weight must be positive. A weight of 0 does not
+  // "deprioritise" a cell — it removes those households
+  // from the pool entirely, which is never the intent.
+  const weights = [
+    ...Object.values(policy.tierWeight),
+    ...Object.values(policy.capabilityWeight),
+  ];
+
+  if (weights.some(weight => !(weight > 0))) {
+    return false;
+  }
+
+  // Need must dominate contribution (§4).
+  if (
+    policy.tierWeight.critical <= policy.tierWeight.high ||
+    policy.tierWeight.high <= policy.tierWeight.moderate ||
+    policy.tierWeight.moderate <= policy.tierWeight.standard
+  ) {
+    return false;
+  }
+
+  return true;
 }
 ```
+
+Structural validation is not sufficient on its own. A policy that passes every rule above can still invert the roll in practice, because the outcome depends on headcounts as well as weights. **Re-run the settlement against the current roll and check both assertions in §15 before committing a policy change** — reject on failure, and show the operator which two cells inverted.
 
 ---
 
@@ -881,9 +1143,15 @@ for the Dapto East demonstration.
 Suggested:
 
 ```text
-90 solar households
-210 non-solar households
+90 enrolled solar contributors   -> Solar Pool only
+210 equity-eligible households   -> Equity Pool only
 ```
+
+Seed at least one household with `hasSolar = true` and `receivesSolarPool = false` — a social-housing tenant with landlord-owned panels. That household stays on the equity roll, and it is the case that catches an implementation which gates eligibility on ownership instead of enrolment.
+
+Every one of the twelve cells must have members, or the block allocation is never exercised. A cell left empty in the seed is a code path never run before the demo.
+
+Suggested per-cell headcounts totalling 210 are modelled in §13.
 
 Distribute households across:
 
@@ -956,10 +1224,18 @@ Equity Pool
 Solar Pool
 Community Reserve
 
-Per-Point Rate
+Equity roll size  (participants − contributors)
+Contributor count
+
+12-cell table:
+  cell · n · points · weight · block · block % · cell rate · credit each
 
 Solar Credit per Owner
 ```
+
+There is no single "Per-Point Rate" to display any more. Showing one number when twelve exist would misstate what a household is owed. If a headline figure is needed for the demo, show the **per-tier average credit** and label it an average.
+
+The cell table is also the explainability surface: a resident asking "why this amount?" is answered by their cell's block, its divisor, and their score — three numbers, all on one row.
 
 ### Fairness Check
 
@@ -1027,39 +1303,33 @@ The intended concept is:
 
 # 28. Known Design Question to Keep Visible
 
-The modelled `60 / 35 / 5` split creates a possible perception issue:
+The modelled `60 / 35 / 5` split created a perception issue:
 
-A Standard-tier solar owner may receive more overall than a Critical-need apartment renter because solar compensation is a separate producer payment.
+A Standard-tier solar owner could receive more overall than a Critical-need apartment renter, because solar compensation is a separate producer payment **stacked on top of** an equity credit.
 
-The source document treats this as a conscious governance decision rather than an accidental result.
+**Status: addressed, not eliminated.** The source document named two possible remedies — reweighting to `65 / 30 / 5`, or changing Equity Pool eligibility rules. This specification takes the second: a household paid from the Solar Pool no longer draws from the Equity Pool (§12.1), and the equity pool is allocated by cell rather than by a flat rate (§12.3).
 
-Possible policy alternatives identified in the source include:
+On the modelled Dapto East roll that reverses the ordering — Aroha $21.20 against Maria $16.96, where previously it was $15.00 against $20.56 (§19).
 
-```text
-65 / 30 / 5
-```
+**What remains unresolved:**
 
-or changing Equity Pool eligibility rules.
+1. The reversal is a property of the roll, not a structural guarantee. The Solar Pool is a flat 35% divided by contributor headcount; if contributors become scarce relative to the equity roll, a solar owner can overtake a critical-need household again with no rule having changed.
+2. The remedy is therefore a **report, not an assertion**. Surface `highest equity credit vs. solar credit per owner` every settlement. Do not auto-correct it — an allocator that quietly reshapes pools to make a comparison look good is exactly what §30.10 forbids.
+3. If it inverts persistently, the lever is the split itself (`65 / 30 / 5`), which is a community vote under §17.
 
-For the hackathon prototype, do not silently alter this rule.
-
-If the split is configurable, preserve the minimum:
+Preserve the minimum in every configuration:
 
 ```text
 equityPct >= 60
 ```
 
-and clearly distinguish:
+and keep the two facts visibly distinct in every surface:
 
 ```text
-Equity support
+Equity support   ≠   Solar producer compensation
 ```
 
-from:
-
-```text
-Solar producer compensation
-```
+A household now receives exactly one of them, which makes the distinction easier to state honestly than it was when both landed on the same statement.
 
 ---
 
@@ -1069,16 +1339,20 @@ Solar producer compensation
 
 - [ ] Household priority-score calculation
 - [ ] Need-tier calculation
+- [ ] Capability-class derivation from Factor E
 - [ ] Governance split validation
-- [ ] Equity Pool calculation
+- [ ] Governance weight validation (positive, tier-monotonic)
+- [ ] Equity roll construction — contributors and zero-point households excluded
+- [ ] Twelve-cell partition
+- [ ] Cell block allocation — `tierWeight × headcount`
+- [ ] Cell rate and per-household credit
+- [ ] Integer-cent largest-remainder rounding, both levels
 - [ ] Solar Pool calculation
-- [ ] Community Reserve calculation
-- [ ] Per-point rate calculation
-- [ ] Per-household settlement
+- [ ] Community Reserve calculation, including carry of an undistributable pool
 - [ ] Solar-owner flat payment
-- [ ] Equity Floor automated assertion
-- [ ] Seed demo households
-- [ ] Settlement preview UI
+- [ ] Equity Floor automated assertion (§15, both checks)
+- [ ] Seed demo households across all twelve cells
+- [ ] Settlement preview UI with the 12-cell table
 
 ## P1 — High Value
 

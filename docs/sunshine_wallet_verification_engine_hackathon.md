@@ -149,12 +149,31 @@ A + B + C + D + E = priority score
 
 Do not trust a stored score without recomputing it.
 
+### pool_exclusivity
+
+Confirm the participant is **not** on the Layer 1B contributor roll for this period. A household is paid from the Equity Pool or the Solar Pool, never both.
+
+### cell_derivation
+
+Confirm the participant's cell — need tier from Factors A–D, capability class from Factor E — recomputes to the same cell the credit was written against.
+
 ### roll_closure
 
 Confirm that:
 
 ```text
-sum of participant priority points = divisor used for per-point rate
+sum of points of the participants IN THIS CELL
+  = divisor used for this cell's rate
+```
+
+The divisor is per cell, not feeder-wide. A participant's points must appear in exactly one cell's divisor.
+
+### block_closure
+
+Confirm:
+
+```text
+sum of the 12 cell blocks = equity pool   (exact, integer cents)
 ```
 
 ### rate_arithmetic
@@ -162,16 +181,17 @@ sum of participant priority points = divisor used for per-point rate
 Confirm:
 
 ```text
-household credit = priority score × per-point rate
+cell rate      = cell block / cell points
+household credit = priority score × cell rate
 ```
 
 and:
 
 ```text
-sum of all household equity credits ≈ equity pool
+sum of all household equity credits = equity pool   (exact, integer cents)
 ```
 
-Use safe rounding rules.
+Integer cents with largest-remainder distribution at both levels. An approximate match hides a closure bug rather than tolerating rounding.
 
 ---
 
@@ -563,8 +583,11 @@ PASSED
 
 Participant: HH-0912
 Priority score: 75
-Per-point rate: $0.20
-Credit: $15.00
+Cell: critical / none
+  block  $356.05
+  ÷ 1,260 cell points
+  = $0.2826 per point
+Credit: $21.20
 ```
 
 and:
@@ -590,8 +613,11 @@ Always show calculations.
 Examples:
 
 ```text
-75 points × $0.20 = $15.00
+$356.05 ÷ 1,260 pts = $0.2826/pt
+75 points × $0.2826 = $21.20
 ```
+
+Show both stages. A single multiplication hides where the rate came from, and the rate is the part a resident is most likely to question.
 
 and:
 
@@ -731,13 +757,19 @@ Show duplicate enrolment removal.
 Animate:
 
 ```text
-Roll points: 13,092 → 13,080
-Per-point rate: $0.1998 → $0.2000
+Cell: high / individual_tank
+Claimants:   23 → 22
+Cell points: 1,495 → 1,430
+Cell block:  $339.29 → $326.38
+Cell rate:   $0.2270 → $0.2282
+Credit (65 pts): $14.75 → $14.84
 ```
 
 Explain:
 
 > Removing an invalid claim increases everyone else's share because the pot is fixed.
+
+Note the second-order effect worth narrating: the block *shrinks* too, because the cell lost a claimant and blocks scale with headcount. The rate still rises — the block falls more slowly than the points do — but the money released does not all stay in that cell. Some flows to the other eleven. Show both numbers moving rather than only the rate, or the animation tells a simpler story than the arithmetic.
 
 ### Step 7
 

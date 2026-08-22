@@ -20,9 +20,9 @@ flowchart LR
     A2 --> A3
   end
 
-  subgraph DAILY["B · Daily cycle — runs every day per feeder"]
-    D1[Forecast Engine]
-    D2[Dispatch Planner]
+  subgraph DAILY["B · Daily cycle — council-operated, runs every day per feeder"]
+    D1[Council · Forecast Engine]
+    D2[Council · Dispatch Planner]
     D1 --> D2
 
     subgraph BAT["B1 · Battery channel — store now, release later"]
@@ -50,14 +50,18 @@ flowchart LR
   subgraph SETTLE["C · Monthly settlement"]
     S1[Pot]
     S2[Split 60/35/5]
-    S3[Layer 1A + 1B<br/>allocate]
+    S3["Layer 1B<br/>contributors, flat share"]
+    S4["Layer 1A<br/>12 cells, block then points"]
     S1 --> S2 --> S3
+    S2 --> S4
+    S3 -->|"contributors leave<br/>the equity roll"| S4
   end
 
-  A3 -->|roll of participants| S3
+  A3 -->|roll of participants| S4
   D4 -->|verified value| S1
   S3 --> R1[Resident wallet]
-  S3 --> R2[Council dashboard]
+  S4 --> R1
+  S4 --> R2[Council dashboard]
 ```
 
 The two daily channels run **in parallel off the same forecast** and never queue behind each other — a cloudy morning kills both, a partner outage kills only one. They differ in *when* the energy moves and therefore in how it is proven:
@@ -71,6 +75,20 @@ The two daily channels run **in parallel off the same forecast** and never queue
 | Fails as | `attribution` — discharge doesn't match the dispatched plan | `shift_not_addition` — load was added, not moved |
 
 Both land in the **same** Verification Engine and the same `verification_records` table, tagged by `channel`. A rejected battery record does not touch the load-shift verdict for the same event, and vice versa — verify per channel, sum after.
+
+### Who owns what
+
+The **Forecast Engine, Dispatch Planner, Rotation Queue and Verification Engine are council-operated.** They are the operator's own decision logic, and everything they do is auditable from the council console. The partners sit on the other side of a trust boundary and are reached only through adapters:
+
+| | Council-operated | Partner |
+|---|---|---|
+| Decides | which window, how much budget, which households, what counts as verified | whether it accepts a dispatch, what its meters recorded |
+| Components | Forecast Engine · **Dispatch Planner** · Rotation Queue · Verification Engine | `adapter:endeavour` · `adapter:retailer` · `adapter:meterdata` · `adapter:eligibility` |
+| Failure mode | a planning bug — visible in the funnel, correctable by the operator | a declined dispatch or missing interval data — the event degrades to `no_event` or a rejected record |
+
+This matters for two reasons. First, **the Dispatch Planner never asks a partner what to do** — it decides the plan and asks the partner to execute it, so a partner cannot influence who gets selected. Selection is governed by the Rotation Queue's `rescued_days` ordering alone. Second, because the planner is council-side, its inputs and outputs belong in the operator console: the funnel bar, the rotation queue view, and the `no_event` state are all reporting on the council's own decisions, not a partner's.
+
+In the codebase this boundary already exists — `lib/engine/optimiser.ts` (`optimiseDispatchPlan`) is surfaced at `app/council/optimisation/page.tsx`, and `services/` is reserved for the partner adapters.
 
 **The rule that governs everything:** the daily cycle *fills* the pot; onboarding decides *who divides* it. They never touch until settlement.
 
@@ -94,17 +112,89 @@ flowchart TD
   B6 --> B7[Ask Factor C only]
 
   A1 --> SCORE
-  B7 --> SCORE[Compute priority score]
+  B7 --> SCORE["Score Factors A-E"]
 
-  SCORE --> TIER[Assign need tier]
-  TIER --> ROLL{has_solar?}
-  ROLL -->|Yes| ROLL2[Add to equity roll<br/>+ contributor roll]
-  ROLL -->|No| ROLL1[Add to equity roll]
+  SCORE --> NEED["need_score = A+B+C+D<br/>0-85"]
+  SCORE --> CONTRIB["contrib_score = E<br/>0-15"]
+
+  NEED --> PRI["priority_score<br/>= need_score + contrib_score<br/>0-100"]
+  CONTRIB --> PRI
+
+  NEED --> TIER["need_tier<br/>from A-D only"]
+  CONTRIB --> CAP["capability_class<br/>from E only"]
+
+  TIER --> CELL["Place in equity cell<br/>tier × capability"]
+  CAP --> CELL
+
+  CELL --> ROLL{"Enrolling as a<br/>solar contributor?"}
+  ROLL -->|Yes| ROLL2["Contributor roll only<br/>receives_solar_pool = 1"]
+  ROLL -->|No| ROLL1["Equity roll only<br/>receives_solar_pool = 0"]
   ROLL1 --> DONE([Wallet ready])
   ROLL2 --> DONE
+  PRI -->|"stored, divides the block at settlement"| DONE
 ```
 
+**`priority_score = need_score + contrib_score`** — but notice what the arrows do *not* do: `priority_score` never feeds `need_tier`. The tier branches off `need_score` alone, and the capability class off `contrib_score` alone. The sum is computed in parallel and stored for settlement, where it divides the block its cell was given.
+
+Drawing it the other way — score first, then tier from the score — is the error rule 2 below exists to prevent. It would let fifteen capability points promote a household into a larger block.
+
+The roll question is **enrolment, not ownership**. `has_solar` is recorded but does not route a household — a resident with panels they earn nothing from answers "no" here and lands on the equity roll (§5, §12.1 of the priority scheme).
+
 ### Scoring model
+
+Five answers become two scores, and the two scores are used for **different things**. This is the part most easily got wrong, so read the diagram as two tracks that only meet at the credit:
+
+```mermaid
+flowchart TD
+  subgraph ASK["Five questions — Flow A asks all, Flow B asks only C"]
+    QA["Q · trouble paying?"]
+    QB["Q · rebate or concession?"]
+    QC["Q · rent or own?"]
+    QD["Q · who do you pay?"]
+    QE["Q · hot water & own meter?"]
+  end
+
+  QA --> FA["Factor A · access barrier<br/>0-35"]
+  QB --> FB["Factor B · income / concession<br/>0-25"]
+  QC --> FC["Factor C · tenure<br/>0-15"]
+  QD --> FD["Factor D · billing<br/>0-10"]
+  QE --> FE["Factor E · capability<br/>0-15"]
+
+  FA --> NEED
+  FB --> NEED
+  FC --> NEED
+  FD --> NEED
+  NEED["need_score = A+B+C+D<br/>0-85"]
+  FE --> CONTRIB["contrib_score = E<br/>0-15"]
+
+  NEED --> TIER{"need band"}
+  TIER -->|60-85| T1[Critical]
+  TIER -->|40-59| T2[High]
+  TIER -->|20-39| T3[Moderate]
+  TIER -->|0-19| T4[Standard]
+
+  CONTRIB --> CAP{"capability"}
+  CAP -->|15| C1[individual_tank]
+  CAP -->|8 or 4| C2[shared_or_other]
+  CAP -->|0| C3[none]
+
+  NEED --> PRI["priority_score<br/>= need_score + contrib_score<br/>0-100"]
+  CONTRIB --> PRI
+
+  T1 --> CELL
+  T2 --> CELL
+  T3 --> CELL
+  T4 --> CELL
+  C1 --> CELL
+  C2 --> CELL
+  C3 --> CELL
+  CELL["equity cell<br/>one of 12"]
+
+  CELL -->|"sizes the block"| CREDIT["Layer 1A credit"]
+  PRI -->|"divides the block"| CREDIT
+
+  LS["Life support declared"] -.->|"never scored"| SAFE["safety_excluded = 1<br/>scheduling exclusion only"]
+```
 
 | Factor | Max | Source in Flow B | Source in Flow A |
 |---|---|---|---|
@@ -118,13 +208,85 @@ flowchart TD
 
 Tiers by need subtotal: Critical 60-85 · High 40-59 · Moderate 20-39 · Standard 0-19.
 
+**Two derived values, and neither replaces the other:**
+
+| Derived | From | Determines |
+|---|---|---|
+| `need_tier` | Factors A–D only | Which **row** of the equity matrix — and therefore how large a block the household's cell draws |
+| `capability_class` | Factor E only | Which **column** — `15 → individual_tank`, `8` or `4 → shared_or_other`, `0 → none` |
+| `priority_score` | A+B+C+D+E | The household's **share within its cell**, once the block is set |
+
+The cell decides how much money arrives at the household's group; the score decides how that group's money is split. A household with a high score in a small-block cell can earn less than a household with a lower score in a large-block cell — that is the mechanism working, not a defect.
+
+**Why Factor E cannot move the row:** capability enters `priority_score`, so it moves a household *within* its cell, but `need_tier` is computed from A–D alone. Fifteen capability points can never promote a Standard household into the Critical block. This is the structural form of "need must dominate contribution", and it is why the tier calculation must never be given the total score by mistake.
+
+Factor E's four answer levels fold into three columns — `other controllable load` (4 points) shares `shared_or_other` with the shared tank. The fold changes grouping only; the two still carry different points inside the cell.
+
+### From score to credit
+
+The scoring model does not produce a dollar amount on its own. It produces a **cell** and a **score**, and those two enter the settlement arithmetic at different stages:
+
+```mermaid
+flowchart TD
+  NEED["need_score<br/>A+B+C+D"] --> TIER[need_tier]
+  CONTRIB["contrib_score<br/>E"] --> CAP[capability_class]
+  NEED --> PRI["priority_score<br/>= need_score + contrib_score"]
+  CONTRIB --> PRI
+
+  TIER --> CELL["equity cell"]
+  CAP --> CELL
+
+  CELL --> W["cell_weight<br/>= tier_weight × capability_weight × n"]
+  W --> BLOCK["block = equity_pool × cell_weight / Σ cell_weight"]
+
+  CELL --> PTS["cell_points<br/>= Σ priority_score of the cell"]
+  BLOCK --> RATE["cell_rate = block / cell_points"]
+  PTS --> RATE
+
+  RATE --> CREDIT["credit = priority_score × cell_rate"]
+  PRI --> CREDIT
+
+  CREDIT --> LEDGER["Layer 1A credit row"]
+```
+
+Note `priority_score` appears **twice** and in two roles — once summed across the cell as the divisor, once as the household's own numerator. Both uses are the full `need_score + contrib_score`. Only `need_tier` and `capability_class` are restricted to their halves.
+
+```text
+cell_weight  = tier_weight × capability_weight × claimant_count
+block        = equity_pool × cell_weight / Σ(all cell_weight)
+cell_points  = Σ priority_score of claimants in that cell
+cell_rate    = block / cell_points
+credit       = priority_score × cell_rate
+```
+
+**Worked, on the §13 modelled roll** (equity pool $2,616.00, 210 households):
+
+| Household | A+B+C+D | E | need | contrib | **priority** | Cell | Block | Cell points | Cell rate | Credit |
+|---|--:|--:|--:|--:|--:|---|--:|--:|--:|--:|
+| Aroha — apartment renter, EAPA, instantaneous HW | 75 | 0 | 75 | 0 | **75** | critical / none | $356.05 | 1,260 | $0.2826 | **$21.20** |
+| Dinh — private renter, rebate, own tank | 46 | 15 | 46 | 15 | **61** | high / individual_tank | $326.38 | 1,430 | $0.2282 | **$13.92** |
+| Cell-representative, best device | 10 | 15 | 10 | 15 | **25** | standard / individual_tank | $69.23 | 350 | $0.1978 | **$4.95** |
+| Cell-representative, no device | 10 | 0 | 10 | 0 | **10** | standard / none | $69.23 | 140 | $0.4945 | **$4.95** |
+
+Every row multiplies out: `priority_score × cell_rate = credit`.
+
+Two caveats on the figures. Aroha and Dinh are scored from their §19 profiles and priced at their cell's modelled rate — actually adding them to the roll would shift that cell's points and rate slightly, so treat their credits as indicative. The bottom two rows are their cells' own representative members, so that arithmetic is exact; the final cent there is settled by largest remainder, and two members of one cell can land a cent apart. **The block closes exactly; the individual figure is what absorbs the rounding.**
+
+**Read the last two rows together.** Their priority scores differ by 15 points — 25 against 10 — and they receive **the same credit**. Their cells hold the same headcount and the same tier weight, so they draw the same block; the cell with fewer points converts each point into more money. Under the old flat rate they received $6.51 and $2.60 — a gap of $3.91 that came entirely from the device.
+
+That is the intended behaviour, and it is the clearest statement of what the two scores do: **Factor E moves a household inside its cell, but between two cells of the same tier it moves nothing at all.** Contribution capability is compensated through participation and the Solar Pool, not through a larger share of hardship support.
+
+The corollary matters just as much for anyone reading a wallet screen: **a higher priority score does not guarantee a higher credit.** A household on 30 points in `moderate / none` receives `30 × $0.3297 = $9.89`, while one on 65 points in `high / individual_tank` receives `65 × $0.2282 = $14.83` — the ordering holds there, but it holds because of the tier, not the score. Never present the score to a resident as though it alone determines the payment.
+
 **Rules the implementation must enforce:**
 
-1. Money is allocated by **total score**, not tier. Tiers exist for eligibility gates and reporting only — this avoids a cliff-edge where one point changes someone's income.
-2. Physical-channel enrolment requires `need_tier >= Moderate` **AND** `contrib_score >= 8`.
-3. A failed or unavailable eligibility lookup **never** scores 0 — it falls through to self-declaration with `verification: 'self_declared'`.
-4. `rebate_band` is `primary` / `secondary` / `none`. **Never store which program.** Medical and Life Support rebates map to `primary` so no health data enters the system.
-5. Life-support status sets `safety_excluded: true` — a scheduling exclusion, never a scoring input.
+1. Money is allocated by **cell first, then total score**. The cell (tier × capability) sizes the block; the total score divides it. Recompute both from the factor scores at settlement — never trust a stored `need_tier` or `capability_class`, or a re-scored household is paid out of the wrong block.
+2. `need_tier` is derived from the **need subtotal (A–D)**, never from `priority_score`. Passing the total into the tier calculation is the single highest-impact bug available in this system: it lets capability points buy a larger block, which inverts the scheme.
+3. Physical-channel enrolment requires `need_tier >= Moderate` **AND** `contrib_score >= 8`. Note this gate reads the raw score, not `capability_class` — an `other controllable load` household (E=4) sits in `shared_or_other` for allocation but is below the enrolment gate. The two thresholds are deliberately different and must not be collapsed.
+4. A failed or unavailable eligibility lookup **never** scores 0 — it falls through to self-declaration with `verification: 'self_declared'`. A zero score is not a neutral default here: it drops the household off the equity roll entirely (§5), so a lookup failure must never be allowed to look like an answer.
+5. `rebate_band` is `primary` / `secondary` / `none`. **Never store which program.** Medical and Life Support rebates map to `primary` so no health data enters the system.
+6. Life-support status sets `safety_excluded: true` — a scheduling exclusion, never a scoring input.
+7. Equity-roll membership is decided by `receives_solar_pool`, not `has_solar`. Both fields are stored; only the first routes money.
 
 ---
 
@@ -134,13 +296,13 @@ Tiers by need subtotal: Critical 60-85 · High 40-59 · Moderate 20-39 · Standa
 sequenceDiagram
   autonumber
   participant CR as Cron
-  participant FE as Forecast Engine
-  participant DP as Dispatch Planner
-  participant RQ as Rotation Queue
+  participant FE as Council · Forecast Engine
+  participant DP as Council · Dispatch Planner
+  participant RQ as Council · Rotation Queue
   participant EN as adapter:endeavour
   participant RT as adapter:retailer
   participant MD as adapter:meterdata
-  participant VE as Verification Engine
+  participant VE as Council · Verification Engine
   participant DB as SQLite
 
   Note over CR,DB: 08:00 — PLAN
@@ -245,44 +407,79 @@ Store `stage` on every event row. Both consoles render off it, and the demo anim
 
 ```mermaid
 flowchart TD
-  POT["Pot = Σ verified value_aud<br/>$4,360.18"] --> SPLIT{Split}
-  SPLIT -->|60%| EQ["Equity pool<br/>$2,616.11"]
-  SPLIT -->|35%| SOL["Solar pool<br/>$1,526.06"]
-  SPLIT -->|5%| RES["Community reserve<br/>$218.01"]
+  POT["Pot = Σ verified value_aud<br/>$4,360.00"] --> SPLIT{Split}
+  SPLIT -->|60%| EQ["Equity pool<br/>$2,616.00"]
+  SPLIT -->|35%| SOL["Solar pool<br/>$1,526.00"]
+  SPLIT -->|5%| RES["Community reserve<br/>$218.00"]
 
-  EQ --> L1A["Layer 1A<br/>÷ 13,080 points<br/>= $0.20/pt"]
   SOL --> L1B["Layer 1B<br/>÷ 90 contributors<br/>= $16.96 each"]
+  L1B --> EXCL["Contributors leave<br/>the equity roll"]
+  EXCL -.->|"210 of 300 remain"| ROLL
 
-  L1A --> W1["Dinh · 61 pts<br/>$12.20"]
-  L1A --> W2["Maria · 18 pts<br/>$3.60"]
-  L1B --> W2B["Maria · contributor<br/>$16.96"]
+  EQ --> ROLL["Equity roll<br/>210 households"]
+  ROLL --> CELLS["Partition into 12 cells<br/>need tier × capability"]
 
-  W2 --> WM["Maria total $20.56"]
-  W2B --> WM
+  CELLS --> B1["critical/none · n=18<br/>block $356.05<br/>÷ 1,260 pts = $0.2826"]
+  CELLS --> B2["high/tank · n=22<br/>block $326.38<br/>÷ 1,430 pts = $0.2282"]
+  CELLS --> B3["…10 more cells"]
+
+  B1 --> W1["Aroha · 75 pts<br/>$21.20"]
+  B2 --> W2["Dinh · 61 pts<br/>$13.92"]
+  L1B --> W3["Maria · contributor<br/>$16.96 · no equity credit"]
+
   RES --> CARRY[Carries forward]
 ```
 
-**Two rolls, two divisors — keep them separate:**
+**Settle 1B before 1A.** The contributor roll determines who is on the equity roll; computing both from the same household list in parallel is how a household gets paid twice.
+
+**Two rolls, and they no longer overlap:**
 
 | Branch | Roll | Divisor | Formula |
 |---|---|---|---|
-| **1A** equity | all participants | Σ priority points | `score × (equity_pool / total_points)` |
-| **1B** contributor | enrolled solar owners | headcount | `solar_pool / contributor_count` |
+| **1B** contributor | enrolled solar contributors | headcount | `solar_pool / contributor_count` |
+| **1A** equity | participants **not** paid from 1B, with score > 0 | Σ points *within each cell* | `score × (cell_block / cell_points)` |
+
+Layer 1A is now a two-stage division. The pool splits into twelve cell blocks by `tier_weight × claimant_count`, and only inside a cell do priority points divide the block:
+
+```
+cell_block = equity_pool × (tier_weight × n) / Σ(tier_weight × n)
+cell_rate  = cell_block / cell_points
+credit     = score × cell_rate
+```
+
+Default `tier_weight` is `critical 4 · high 3 · moderate 2 · standard 1`; `capability_weight` defaults to 1 across all three classes. Both are governance policy — see the priority scheme §12.3 and §22.
+
+**There is no single per-point rate any more.** Twelve cells means twelve rates, and they move in the opposite direction to capability: `$0.4945/pt` in standard/none against `$0.1978/pt` in standard/tank. Any endpoint or UI that returns one headline `rate_aud_pt` is misreporting what a household is owed.
 
 Layer 1 checks that must pass before a credit is written:
 
-- **1A:** `token_valid`, `no_duplicate`, `in_program_area`, `score_derivation`, `roll_closure`, `rate_arithmetic`
-- **1B:** `system_registered`, `enrolled`, `active_period`, `one_claim_per_point`, `count_closure`, `rate_arithmetic`
+- **1A:** `token_valid`, `no_duplicate`, `in_program_area`, `score_derivation`, `cell_derivation`, `pool_exclusivity`, `roll_closure`, `block_closure`, `rate_arithmetic`
+- **1B:** `system_registered`, `enrolled`, `active_period`, `one_claim_per_point`, `pool_exclusivity`, `count_closure`, `rate_arithmetic`
+
+Two checks are new:
+
+| Check | Fails when |
+|---|---|
+| `pool_exclusivity` | the household appears on both the 1A and 1B roll for the same period |
+| `cell_derivation` | stored `need_tier` / `capability_class` disagree with the factor scores they are recomputed from |
+| `block_closure` | the twelve cell blocks do not sum to the equity pool |
 
 **Invariants to assert in code:**
 
 ```
-Σ all 1A credits          == equity_pool   (±$0.01)
+Σ 12 cell blocks          == equity_pool   (exact, integer cents)
+Σ all 1A credits          == equity_pool   (exact, integer cents)
 contributor_count × share == solar_pool    (±$0.01)
-equity_pct >= 60                            // Equity Floor, reject writes below
+1A_roll ∩ 1B_roll         == ∅             // pool exclusivity
+equity_pct >= 60                           // Equity Floor, reject writes below
+avg_credit(critical) >= avg_credit(high) >= avg_credit(moderate) >= avg_credit(standard)
 ```
 
-Pro-rate partial 1B enrolments by `days_enrolled / days_in_period`, then re-normalise so the shares still sum to the pool — this is the case that classically breaks `count_closure`.
+Use integer cents and largest-remainder rounding at **both** levels — pool → blocks, block → households. A ±$0.01 tolerance is not needed for 1A once the arithmetic is integral, and accepting one hides a genuine closure bug.
+
+Pro-rate partial 1B enrolments by `days_enrolled / days_in_period`, then re-normalise so the shares still sum to the pool — this is the case that classically breaks `count_closure`. A household that enrols mid-period is settled from 1B for the whole period and stays off the 1A roll; do not split one household across both pools within a period.
+
+**Carry cases:** if no contributors are enrolled, the solar pool carries to the reserve. If no household is equity-eligible, the whole equity pool carries. Write the carry as an explicit ledger row — an undistributed pool that simply disappears will not reconcile.
 
 ---
 
@@ -316,10 +513,13 @@ flowchart LR
 
 ```sql
 -- extend households
-ALTER TABLE households ADD COLUMN need_score      INTEGER;
-ALTER TABLE households ADD COLUMN contrib_score   INTEGER;
-ALTER TABLE households ADD COLUMN priority_score  INTEGER;
-ALTER TABLE households ADD COLUMN need_tier       TEXT;
+ALTER TABLE households ADD COLUMN need_score      INTEGER;  -- A+B+C+D, 0-85
+ALTER TABLE households ADD COLUMN contrib_score   INTEGER;  -- E, 0-15
+ALTER TABLE households ADD COLUMN priority_score  INTEGER;  -- need_score + contrib_score, 0-100
+ALTER TABLE households ADD COLUMN need_tier       TEXT;   -- critical|high|moderate|standard
+ALTER TABLE households ADD COLUMN capability_class TEXT;  -- individual_tank|shared_or_other|none
+ALTER TABLE households ADD COLUMN has_solar       INTEGER DEFAULT 0;  -- owns panels
+ALTER TABLE households ADD COLUMN receives_solar_pool INTEGER DEFAULT 0; -- paid as contributor
 ALTER TABLE households ADD COLUMN delivery_mode   TEXT;   -- bill_credit|program_credit|voucher
 ALTER TABLE households ADD COLUMN verification    TEXT;   -- retailer_confirmed|self_declared
 ALTER TABLE households ADD COLUMN safety_excluded INTEGER DEFAULT 0;
@@ -348,17 +548,40 @@ CREATE TABLE verification_records (
 
 CREATE TABLE settlements (
   id TEXT PRIMARY KEY, period TEXT,
-  pot_aud REAL, equity_pool REAL, solar_pool REAL, reserve REAL,
-  roll_points INTEGER, rate_aud_pt REAL,
-  contributor_count INTEGER, contributor_share REAL
+  pot_cents INTEGER, equity_pool_cents INTEGER,
+  solar_pool_cents INTEGER, reserve_cents INTEGER,
+  equity_roll_count INTEGER,        -- participants minus contributors
+  contributor_count INTEGER, contributor_share_cents INTEGER,
+  carried_cents INTEGER DEFAULT 0,  -- undistributable pool -> reserve
+  policy_version TEXT               -- split + weights in force
+);
+
+-- One row per equity cell per settlement. There is no single
+-- rate_aud_pt any more; the rate lives here, twelve times.
+CREATE TABLE settlement_cells (
+  id TEXT PRIMARY KEY, settlement_id TEXT,
+  need_tier TEXT, capability_class TEXT,
+  claimant_count INTEGER,           -- members with score > 0
+  cell_points INTEGER,
+  cell_weight REAL,                 -- tier_weight × capability_weight × n
+  block_cents INTEGER,
+  rate_cents_per_point REAL
 );
 
 CREATE TABLE credits (
   id TEXT PRIMARY KEY, settlement_id TEXT, household_id TEXT,
   branch TEXT,           -- '1A' | '1B'
-  amount_aud REAL, delivery_mode TEXT
+  settlement_cell_id TEXT,  -- 1A only; the block this credit came out of
+  priority_score INTEGER,   -- 1A only; frozen at settlement
+  amount_cents INTEGER, delivery_mode TEXT
 );
 ```
+
+Amounts move to **integer cents**. Cell blocks and per-household shares are distributed by largest remainder, so `Σ block_cents = equity_pool_cents` and `Σ amount_cents = equity_pool_cents` hold exactly — a REAL column reintroduces the drift the invariants exist to catch.
+
+`settlement_cells` is what makes a credit explainable: a resident's row joins to their cell, and the three numbers behind their amount — block, divisor, own score — are all on it. Store `priority_score` on the credit as well, frozen at settlement, so a later re-score never silently rewrites a past statement.
+
+A partial `UNIQUE (settlement_id, household_id)` index enforces `pool_exclusivity` at the database rather than in application code.
 
 Verification records are **append-only**. A correction writes a new record referencing the original — never an edit.
 
@@ -382,8 +605,14 @@ GET  /api/wallet/:householdId                             -> { total, line_items
 POST /api/settings/pause         { householdId, paused }  -> { ok }
 
 GET  /api/operator/map                                    -> { feeders[] }
-GET  /api/operator/governance                             -> { split, preview_by_tier }
-POST /api/operator/governance    { equity, solar, reserve } -> re-settle; 400 if equity < 60
+GET  /api/operator/governance                             -> { split, tier_weights, capability_weights, preview_by_cell }
+POST /api/operator/governance    { equity, solar, reserve,
+                                   tier_weights, capability_weights }
+                                 -> re-settle; 400 if equity < 60,
+                                    any weight <= 0, tier weights not
+                                    strictly decreasing, or the re-run
+                                    breaks an Equity Floor assertion
+GET  /api/settlement/:id/cells                            -> { cells[12] }
 GET  /api/operator/impact        ?period                  -> { aggregates, equity_floor_status }
 POST /api/reset                                           -> reseed
 ```
@@ -436,10 +665,11 @@ No CRN. No program names. No documents. Nothing that would embarrass us in a bre
 
 | Existing view | Endpoint | New behaviour |
 |---|---|---|
-| `WalletHardship` | `GET /api/wallet/:id` | line items show arithmetic: `61 pts × $0.20`. Contribution shown as a **separate** fact, never as the cause of the credit |
-| `WalletSolar` | `GET /api/wallet/:id` | two lines: 1B contributor share with visible divisor, 1A equity credit |
+| `WalletHardship` | `GET /api/wallet/:id` | line items show the two-stage arithmetic: `high/tank block $326.38 ÷ 1,430 pts = $0.2282` then `61 pts × $0.2282 = $13.92`. Contribution shown as a **separate** fact, never as the cause of the credit |
+| `WalletSolar` | `GET /api/wallet/:id` | **one** line, not two: the 1B contributor share with its visible divisor. Contributors draw no equity credit — state that plainly rather than rendering a `$0.00` equity row that reads as a denial |
 | `operator/FeederDetail` | `GET /api/events/:id` | **funnel bar** forecast → planned → dispatched → observed → verified, each shorter than the last |
-| `operator/Governance` | `GET/POST /api/operator/governance` | reject `equity < 60` with an inline error, not a silent clamp |
+| `operator/Governance` | `GET/POST /api/operator/governance` | reject `equity < 60` with an inline error, not a silent clamp. Weight editors re-run the settlement against the live roll and show which two cells inverted on failure |
+| **new** `operator/EquityCells` | `GET /api/settlement/:id/cells` | the 12-cell table — n, points, weight, block, block %, cell rate, credit each. Show per-tier averages as the headline; never one global `$/pt` |
 | `operator/Rotation` | `GET /api/rotation/:eventId` | queue, fired flags, and a rescued-days histogram that flattens over the month |
 | `operator/IndexMap` | `GET /api/operator/map` | stage chip per feeder |
 | **new** `Onboarding` | `POST /api/onboard/*` | two-path entry, consent screen, prefilled confirmation |
@@ -457,18 +687,20 @@ No CRN. No program names. No documents. Nothing that would embarrass us in a bre
 
 ## 11. Build order
 
-1. **Schema + seed** — 300 households spread across all 12 score/capability combinations, not two archetypes
-2. **Priority scheme** — scoring, tiers, both onboarding flows
+1. **Schema + seed** — 300 households with every one of the 12 cells populated, not two archetypes; include one `has_solar` household that is *not* a contributor
+2. **Priority scheme** — scoring, tiers, capability classes, both onboarding flows
 3. **Forecast + rotation** — including the `no_event` path
 4. **Layer 2 verification** — the three checks
-5. **Settlement** — split, both Layer 1 branches, invariant assertions
+5. **Settlement** — split, 1B first, then the 12-cell 1A allocation, invariant assertions
 6. **Funnel + event API**
 7. **Frontend wiring**
 
 **Seed these edge cases — each is a ten-second demo moment:**
 
 - A **double-heater** (fires midday *and* overnight) → Layer 2 rejection
-- A **duplicate enrolment** → Layer 1A failure; removing it *raises* the per-point rate for everyone else
+- A **duplicate enrolment** → Layer 1A failure; removing it *raises* the rate in that household's cell for everyone else in it
+- A **contributor who also scores high on need** → appears on the 1B roll only; `pool_exclusivity` rejects any 1A credit written for them
+- A **social-housing tenant with landlord-owned panels** → `has_solar = 1`, `receives_solar_pool = 0`; stays on the equity roll. This is the case an ownership-based eligibility check gets wrong
 - A **cloudy day** → `no_event`, nothing credited
 - An **NMI whose retailer isn't a partner** → falls back to self-declaration
 - A **household that self-declares a rebate the token says they don't have** → unclaimed-entitlement nudge
