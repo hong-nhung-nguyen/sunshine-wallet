@@ -1,4 +1,8 @@
-import type { ConsentStatus, EventStatus, WalletTransaction } from "@/lib/types";
+import type {
+  ConsentStatus,
+  EventStatus,
+  WalletTransaction,
+} from "@/lib/types";
 
 export const residentProfile = {
   id: "resident_001",
@@ -25,8 +29,21 @@ export const residentEvents = [
     statusLabel: "Ready",
     description:
       "Local solar is expected to be abundant. Community devices will shift demand into the sunny period.",
-    residentAction: "No action needed",
+    residentAction: "Response needed",
     estimatedCredit: 6.2,
+    contribution: {
+      resourceId: "resource_001",
+      resourceLabel: "Apartment hot-water system",
+      request:
+        "Let the registered hot-water system finish heating during the sunny period instead of later in the evening.",
+      expectedShiftKwh: 1.8,
+      estimatedReward: 2.4,
+      comfortSafeguard:
+        "Hot water must remain within its safe temperature range. The event stops for this resource if that safeguard cannot be met.",
+      whySelected:
+        "The resource is in the Dapto Sunshine Cell, is available in this window and has current resident consent.",
+      responseDeadline: "11:30 am today",
+    },
   },
   {
     id: "event_001",
@@ -40,6 +57,7 @@ export const residentEvents = [
       "The community shifted 14.7 kWh and the result passed Council's verification checks.",
     residentAction: "Completed",
     estimatedCredit: 12.4,
+    contribution: null,
   },
 ] as const;
 
@@ -53,7 +71,10 @@ export const walletTransactions: readonly WalletTransaction[] = [
     currency: "AUD",
     status: "posted",
     createdAt: "2026-08-16T16:00:00+10:00",
-    provenance: { source: "operator_review", notes: "Demo data under Council policy SW-2026-01." },
+    provenance: {
+      source: "operator_review",
+      notes: "Demo data under Council policy SW-2026-01.",
+    },
   },
   {
     id: "credit_087",
@@ -64,7 +85,10 @@ export const walletTransactions: readonly WalletTransaction[] = [
     currency: "AUD",
     status: "posted",
     createdAt: "2026-08-09T16:00:00+10:00",
-    provenance: { source: "operator_review", notes: "Demo data under Council policy SW-2026-01." },
+    provenance: {
+      source: "operator_review",
+      notes: "Demo data under Council policy SW-2026-01.",
+    },
   },
   {
     id: "credit_074",
@@ -75,7 +99,10 @@ export const walletTransactions: readonly WalletTransaction[] = [
     currency: "AUD",
     status: "posted",
     createdAt: "2026-08-02T16:00:00+10:00",
-    provenance: { source: "operator_review", notes: "Demo data under Council policy SW-2026-01." },
+    provenance: {
+      source: "operator_review",
+      notes: "Demo data under Council policy SW-2026-01.",
+    },
   },
 ] as const;
 
