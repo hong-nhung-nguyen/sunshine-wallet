@@ -21,16 +21,22 @@ export default function HomePage() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/resident"
+              href="/login"
               className="inline-flex min-h-12 items-center rounded-full bg-[var(--primary)] px-6 font-semibold text-white transition-colors hover:bg-[var(--primary-strong)]"
             >
-              Open resident view
+              Log in
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex min-h-12 items-center rounded-full border border-[var(--border)] bg-white px-6 font-semibold transition-colors hover:bg-[var(--surface-muted)]"
+            >
+              Create account
             </Link>
             <Link
               href="/council"
-              className="inline-flex min-h-12 items-center rounded-full border border-[var(--border)] bg-white px-6 font-semibold transition-colors hover:bg-[var(--surface-muted)]"
+              className="inline-flex min-h-12 items-center px-3 font-semibold text-[var(--primary)] underline decoration-2 underline-offset-4"
             >
-              Open council view
+              Council operator view
             </Link>
           </div>
         </div>
