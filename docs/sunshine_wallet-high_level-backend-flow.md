@@ -20,9 +20,9 @@ flowchart LR
     A2 --> A3
   end
 
-  subgraph DAILY["B · Daily cycle — runs every day per feeder"]
-    D1[Forecast Engine]
-    D2[Dispatch Planner]
+  subgraph DAILY["B · Daily cycle — council-operated, runs every day per feeder"]
+    D1[Council · Forecast Engine]
+    D2[Council · Dispatch Planner]
     D1 --> D2
 
     subgraph BAT["B1 · Battery channel — store now, release later"]
@@ -75,6 +75,20 @@ The two daily channels run **in parallel off the same forecast** and never queue
 | Fails as | `attribution` — discharge doesn't match the dispatched plan | `shift_not_addition` — load was added, not moved |
 
 Both land in the **same** Verification Engine and the same `verification_records` table, tagged by `channel`. A rejected battery record does not touch the load-shift verdict for the same event, and vice versa — verify per channel, sum after.
+
+### Who owns what
+
+The **Forecast Engine, Dispatch Planner, Rotation Queue and Verification Engine are council-operated.** They are the operator's own decision logic, and everything they do is auditable from the council console. The partners sit on the other side of a trust boundary and are reached only through adapters:
+
+| | Council-operated | Partner |
+|---|---|---|
+| Decides | which window, how much budget, which households, what counts as verified | whether it accepts a dispatch, what its meters recorded |
+| Components | Forecast Engine · **Dispatch Planner** · Rotation Queue · Verification Engine | `adapter:endeavour` · `adapter:retailer` · `adapter:meterdata` · `adapter:eligibility` |
+| Failure mode | a planning bug — visible in the funnel, correctable by the operator | a declined dispatch or missing interval data — the event degrades to `no_event` or a rejected record |
+
+This matters for two reasons. First, **the Dispatch Planner never asks a partner what to do** — it decides the plan and asks the partner to execute it, so a partner cannot influence who gets selected. Selection is governed by the Rotation Queue's `rescued_days` ordering alone. Second, because the planner is council-side, its inputs and outputs belong in the operator console: the funnel bar, the rotation queue view, and the `no_event` state are all reporting on the council's own decisions, not a partner's.
+
+In the codebase this boundary already exists — `lib/engine/optimiser.ts` (`optimiseDispatchPlan`) is surfaced at `app/council/optimisation/page.tsx`, and `services/` is reserved for the partner adapters.
 
 **The rule that governs everything:** the daily cycle *fills* the pot; onboarding decides *who divides* it. They never touch until settlement.
 
@@ -282,13 +296,13 @@ The corollary matters just as much for anyone reading a wallet screen: **a highe
 sequenceDiagram
   autonumber
   participant CR as Cron
-  participant FE as Forecast Engine
-  participant DP as Dispatch Planner
-  participant RQ as Rotation Queue
+  participant FE as Council · Forecast Engine
+  participant DP as Council · Dispatch Planner
+  participant RQ as Council · Rotation Queue
   participant EN as adapter:endeavour
   participant RT as adapter:retailer
   participant MD as adapter:meterdata
-  participant VE as Verification Engine
+  participant VE as Council · Verification Engine
   participant DB as SQLite
 
   Note over CR,DB: 08:00 — PLAN
