@@ -38,12 +38,20 @@ export default function CouncilPage() {
             {councilCell.code} · Forecast and resource data are simulated
           </p>
         </div>
-        <Link
-          href={`/council/events/${activeEvent.id}`}
-          className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
-        >
-          Open active event →
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/council/demo"
+            className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-teal-800"
+          >
+            See how it worked →
+          </Link>
+          <Link
+            href={`/council/events/${activeEvent.id}`}
+            className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
+          >
+            Open active event →
+          </Link>
+        </div>
       </header>
 
       <section

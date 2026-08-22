@@ -4,15 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/council", label: "Overview", mark: "01" },
+  { href: "/council", label: "Dashboard", mark: "01" },
   { href: "/council/events", label: "Events", mark: "02" },
-  { href: "/council/demo", label: "Event loop", mark: "03" },
-  { href: "/council/resources", label: "Resources", mark: "04" },
-  { href: "/council/optimisation", label: "Optimisation", mark: "05" },
-  { href: "/council/simulation", label: "Simulation", mark: "06" },
-  { href: "/council/verification", label: "Verification", mark: "07" },
-  { href: "/council/attribution", label: "Attribution", mark: "08" },
-  { href: "/council/settlement", label: "Settlement", mark: "09" },
+  { href: "/council/resources", label: "Resources", mark: "03" },
+  { href: "/council/attribution", label: "Attribution", mark: "04" },
 ] as const;
 
 export function CouncilNav() {

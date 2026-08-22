@@ -52,7 +52,7 @@ export default function CouncilEventsPage() {
                 href="/council/windows"
                 className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-[var(--council-accent)] hover:text-amber-200"
               >
-                Review window decision →
+                See how it was selected →
               </Link>
               <Link
                 href={`/council/events/${todayEvent.id}`}

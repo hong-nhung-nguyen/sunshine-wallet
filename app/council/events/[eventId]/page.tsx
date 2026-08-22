@@ -44,12 +44,20 @@ export default async function CouncilEventDetailPage({
             {event.id} · {event.dateLabel} · {event.windowLabel}
           </p>
         </div>
-        <Link
-          href="/council/attribution"
-          className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
-        >
-          Review attribution →
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/council/demo"
+            className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-teal-800"
+          >
+            See how it worked →
+          </Link>
+          <Link
+            href="/council/attribution"
+            className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
+          >
+            Review attribution →
+          </Link>
+        </div>
       </header>
       <section className="mt-7 grid gap-5 xl:grid-cols-[1fr_20rem]">
         <Card>
