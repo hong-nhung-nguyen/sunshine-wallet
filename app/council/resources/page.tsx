@@ -22,203 +22,149 @@ export default function ResourcesPage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-6xl">
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-sm font-semibold text-[var(--council-accent-strong,#956000)]">
-            Eligibility engine · {event.id}
+            Resource selection · DAPTO-01
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--council-ink)] sm:text-4xl">
-            Resource hard-gate review
+            Event resource pool
           </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-            Deterministic checks decide which flexible resources may proceed to
-            optimisation. No score or equity weighting can override a failed
-            gate.
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
+            Review which local resources can support this event window. Open any
+            rejected result to see the checks that failed.
           </p>
         </div>
         <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-900">
-          Mock adapter checks · calculated results
+          Eligibility checks complete
         </span>
       </header>
 
       <section
-        className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-        aria-label="Eligibility summary"
+        className="mt-7 grid gap-4 sm:grid-cols-3"
+        aria-label="Resource pool summary"
       >
-        <Card className="border-l-4 border-l-emerald-500">
-          <p className="text-sm text-[var(--muted)]">Eligible</p>
-          <p className="mt-3 font-mono text-3xl font-semibold">
+        <Card className="border-l-4 border-l-emerald-500 p-5">
+          <p className="text-sm text-[var(--muted)]">Selected resources</p>
+          <p className="mt-2 font-mono text-3xl font-semibold">
             {eligibleResources.length}
           </p>
-          <p className="mt-2 text-xs text-emerald-700">
-            May proceed to scoring
+        </Card>
+        <Card className="p-5">
+          <p className="text-sm text-[var(--muted)]">Available shift</p>
+          <p className="mt-2 font-mono text-3xl font-semibold">
+            {totalEligibleShiftKwh} <span className="text-base">kWh</span>
           </p>
         </Card>
-        <Card className="border-l-4 border-l-rose-500">
-          <p className="text-sm text-[var(--muted)]">Rejected</p>
-          <p className="mt-3 font-mono text-3xl font-semibold">
-            {decisions.length - eligibleResources.length}
-          </p>
-          <p className="mt-2 text-xs text-rose-700">Blocked before scoring</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-[var(--muted)]">Eligible shift</p>
-          <p className="mt-3 font-mono text-3xl font-semibold">
-            {totalEligibleShiftKwh}{" "}
-            <span className="text-base font-normal">kWh</span>
-          </p>
-          <p className="mt-2 text-xs text-[var(--muted)]">
-            Against {event.targetFlexEnergyKwh} kWh target
-          </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-[var(--muted)]">Event cell</p>
-          <p className="mt-3 font-mono text-xl font-semibold">DAPTO-01</p>
-          <p className="mt-2 text-xs text-[var(--muted)]">
-            {event.sunshineCellId}
+        <Card className="p-5">
+          <p className="text-sm text-[var(--muted)]">Event target</p>
+          <p className="mt-2 font-mono text-3xl font-semibold">
+            {event.targetFlexEnergyKwh} <span className="text-base">kWh</span>
           </p>
         </Card>
       </section>
 
-      <section className="mt-5 space-y-4" aria-label="Resource decisions">
-        {flexibleResources.map((resource) => {
-          const decision = decisions.find(
-            ({ resourceId }) => resourceId === resource.id,
-          );
-          if (!decision) return null;
-          return (
-            <Card
-              key={resource.id}
-              className={
-                decision.eligible ? "border-emerald-300" : "border-rose-200"
-              }
-            >
-              <div className="grid gap-6 xl:grid-cols-[17rem_1fr_13rem]">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${decision.eligible ? "bg-emerald-100 text-emerald-900" : "bg-rose-100 text-rose-900"}`}
-                    >
-                      {decision.eligible ? "Eligible" : "Rejected"}
-                    </span>
-                    <span className="font-mono text-xs text-[var(--muted)]">
+      <Card className="mt-5 overflow-hidden p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4 sm:px-6">
+          <div>
+            <h2 className="text-xl font-semibold">Resource allocation pool</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {eligibleResources.length} of {flexibleResources.length} resources
+              may proceed to optimisation
+            </p>
+          </div>
+          <span className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 font-mono text-xs font-semibold text-emerald-800">
+            {totalEligibleShiftKwh} kWh selected
+          </span>
+        </div>
+
+        <div className="hidden grid-cols-[1.2fr_1.2fr_0.7fr_0.8fr] gap-4 border-b border-[var(--border)] bg-[var(--surface-muted)] px-6 py-3 text-xs font-semibold tracking-wide text-[var(--muted)] uppercase md:grid">
+          <span>Resource</span>
+          <span>Type</span>
+          <span>Max shift</span>
+          <span>Status</span>
+        </div>
+
+        <div className="divide-y divide-[var(--border)]">
+          {flexibleResources.map((resource) => {
+            const decision = decisions.find(
+              ({ resourceId }) => resourceId === resource.id,
+            );
+            if (!decision) return null;
+            const failedGates = decision.gates.filter((gate) => !gate.passed);
+            return (
+              <div
+                key={resource.id}
+                className={decision.eligible ? "bg-white" : "bg-rose-50/30"}
+              >
+                <div className="grid gap-3 px-5 py-4 md:grid-cols-[1.2fr_1.2fr_0.7fr_0.8fr] md:items-center md:gap-4 md:px-6">
+                  <div>
+                    <p className="font-semibold">{resource.name}</p>
+                    <p className="mt-1 font-mono text-xs text-[var(--muted)]">
                       {resource.id}
+                    </p>
+                  </div>
+                  <p className="text-sm text-[var(--muted)]">
+                    {formatLabel(resource.resourceType)}
+                  </p>
+                  <p className="font-mono text-sm font-semibold">
+                    {resource.maxShiftEnergyKwh} kWh
+                  </p>
+                  {decision.eligible ? (
+                    <span className="w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                      Selected
                     </span>
-                  </div>
-                  <h2 className="mt-3 text-xl font-semibold">
-                    {resource.name}
-                  </h2>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {formatLabel(resource.resourceType)} ·{" "}
-                    {resource.participantId}
-                  </p>
-                  <dl className="mt-5 grid grid-cols-2 gap-3">
-                    <div>
-                      <dt className="text-xs text-[var(--muted)]">Power</dt>
-                      <dd className="mt-1 font-mono text-sm font-semibold">
-                        {resource.capacityKw} kW
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-[var(--muted)]">Max shift</dt>
-                      <dd className="mt-1 font-mono text-sm font-semibold">
-                        {resource.maxShiftEnergyKwh} kWh
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-
-                <div>
-                  <p className="text-xs font-bold tracking-[0.1em] text-[var(--muted)] uppercase">
-                    Eight hard gates
-                  </p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {decision.gates.map((gate) => (
-                      <div
-                        key={gate.code}
-                        className={`rounded-xl border p-3 ${gate.passed ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            aria-hidden="true"
-                            className={
-                              gate.passed ? "text-emerald-700" : "text-rose-700"
-                            }
-                          >
-                            {gate.passed ? "✓" : "×"}
-                          </span>
-                          <p className="text-sm font-semibold">{gate.label}</p>
-                        </div>
-                        <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                          {gate.explanation}
-                        </p>
+                  ) : (
+                    <details className="group md:col-span-4">
+                      <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-3 text-sm font-semibold text-rose-800 transition-colors hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600">
+                        <span aria-hidden="true" className="text-base">
+                          ⚠
+                        </span>
+                        Rejected · view {failedGates.length} failed{" "}
+                        {failedGates.length === 1 ? "check" : "checks"}
+                        <span
+                          aria-hidden="true"
+                          className="transition-transform group-open:rotate-180"
+                        >
+                          ▾
+                        </span>
+                      </summary>
+                      <div className="mt-3 grid gap-3 rounded-2xl border border-rose-200 bg-white p-4 sm:grid-cols-2">
+                        {failedGates.map((gate) => (
+                          <div key={gate.code} className="flex gap-3">
+                            <span
+                              aria-hidden="true"
+                              className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-rose-100 text-xs font-bold text-rose-700"
+                            >
+                              !
+                            </span>
+                            <div>
+                              <p className="text-sm font-semibold text-rose-900">
+                                {gate.label}
+                              </p>
+                              <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
+                                {gate.explanation}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-[var(--surface-muted)] p-4">
-                  <p className="text-xs text-[var(--muted)]">
-                    Decision confidence
-                  </p>
-                  <p className="mt-1 font-mono text-2xl font-semibold">
-                    {Math.round(decision.confidence * 100)}%
-                  </p>
-                  <p className="mt-4 text-xs text-[var(--muted)]">
-                    Device state
-                  </p>
-                  <p className="mt-1 text-sm font-semibold">
-                    {formatLabel(resource.status)}
-                  </p>
-                  <p className="mt-4 text-xs text-[var(--muted)]">
-                    Result code
-                  </p>
-                  <p
-                    className={`mt-1 font-mono text-xs font-semibold break-words ${decision.eligible ? "text-emerald-700" : "text-rose-700"}`}
-                  >
-                    {decision.eligible
-                      ? "ELIGIBLE"
-                      : decision.rejectionCodes.join(" + ")}
-                  </p>
-                  <p className="mt-4 border-t border-[var(--border)] pt-3 text-xs leading-5 text-[var(--muted)]">
-                    Checked {decision.checkedAt} using simulated availability,
-                    comfort and safety acknowledgements.
-                  </p>
+                    </details>
+                  )}
                 </div>
               </div>
-            </Card>
-          );
-        })}
-      </section>
-
-      <Card className="mt-5 bg-[var(--council-ink)] text-white">
-        <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
-          <div>
-            <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent)] uppercase">
-              Engine boundary
-            </p>
-            <h2 className="mt-2 text-xl font-semibold">
-              Eligibility filters; optimisation ranks
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-              This engine evaluates consent, cell, window availability,
-              compatibility, controllability, capability, comfort and safety. It
-              does not select dispatch energy or calculate resident benefits.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm font-semibold">
-              Resident equity remains separate
-            </p>
-            <p className="mt-2 text-xs leading-5 text-slate-300">
-              A household without an eligible device can still receive an Equity
-              Dividend under Council policy. Device eligibility only controls
-              contributor participation.
-            </p>
-          </div>
+            );
+          })}
         </div>
       </Card>
+
+      <p className="mt-5 rounded-2xl bg-[var(--surface-muted)] px-5 py-4 text-sm leading-6 text-[var(--muted)]">
+        Eligibility checks consent, location, availability, compatibility,
+        controllability, capability, comfort and safety. A rejected resource is
+        excluded before optimisation; resident Equity Dividend eligibility is
+        assessed separately.
+      </p>
     </div>
   );
 }
