@@ -8,7 +8,8 @@ const navItems = [
   { href: "/council/events", label: "Events", mark: "02" },
   { href: "/council/windows", label: "Windows", mark: "03" },
   { href: "/council/resources", label: "Resources", mark: "04" },
-  { href: "/council/settlement", label: "Settlement", mark: "05" },
+  { href: "/council/optimisation", label: "Optimisation", mark: "05" },
+  { href: "/council/settlement", label: "Settlement", mark: "06" },
 ] as const;
 
 export function CouncilNav() {

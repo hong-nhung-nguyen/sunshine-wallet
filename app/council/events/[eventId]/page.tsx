@@ -46,13 +46,12 @@ export default async function CouncilEventDetailPage({
             {event.id} · {event.dateLabel} · {event.windowLabel}
           </p>
         </div>
-        <button
-          type="button"
-          disabled
-          className="min-h-11 cursor-not-allowed rounded-full bg-slate-300 px-5 text-sm font-semibold text-slate-600"
+        <Link
+          href="/council/optimisation"
+          className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
         >
-          Optimisation available in Issue #10
-        </button>
+          Review dispatch plan →
+        </Link>
       </header>
       <Card className="mt-7">
         <p className="text-xs font-bold tracking-[0.12em] text-teal-700 uppercase">
