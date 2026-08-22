@@ -10,7 +10,8 @@ const navItems = [
   { href: "/council/resources", label: "Resources", mark: "04" },
   { href: "/council/optimisation", label: "Optimisation", mark: "05" },
   { href: "/council/simulation", label: "Simulation", mark: "06" },
-  { href: "/council/settlement", label: "Settlement", mark: "07" },
+  { href: "/council/verification", label: "Verification", mark: "07" },
+  { href: "/council/settlement", label: "Settlement", mark: "08" },
 ] as const;
 
 export function CouncilNav() {
