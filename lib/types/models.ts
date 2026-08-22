@@ -238,3 +238,18 @@ export interface WalletTransaction {
   createdAt: string;
   provenance?: Provenance;
 }
+
+/** Complete in-memory data contract used by the MVP repository and mock APIs. */
+export interface SunshineWalletData {
+  participants: Participant[];
+  sunshineCells: SunshineCell[];
+  flexibleResources: FlexibleResource[];
+  flexEvents: FlexEvent[];
+  eventResourceSelections: EventResourceSelection[];
+  dispatchPlans: DispatchPlan[];
+  dispatchResults: DispatchResult[];
+  verificationRecords: VerificationRecord[];
+  contributorAttributions: ContributorAttribution[];
+  settlements: Settlement[];
+  walletTransactions: WalletTransaction[];
+}
