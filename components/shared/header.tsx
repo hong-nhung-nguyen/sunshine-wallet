@@ -3,6 +3,7 @@ import Link from "next/link";
 const links = [
   { href: "/resident", label: "Resident" },
   { href: "/council", label: "Council" },
+  { href: "/login", label: "Log in" },
 ];
 
 export function Header() {
@@ -40,6 +41,12 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/register"
+            className="flex min-h-11 items-center rounded-full bg-[var(--primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-strong)]"
+          >
+            Register
+          </Link>
         </nav>
       </div>
     </header>
