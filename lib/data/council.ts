@@ -14,6 +14,12 @@ export const councilCell = {
   roofAccessResidents: 18,
 } as const;
 
+export const councilPolicy = {
+  version: "SW-2026-01",
+  effectiveDate: "1 August 2026",
+  approvedBy: "Wollongong City Council",
+} as const;
+
 export const councilEvents = [
   {
     id: "event_001",
@@ -27,7 +33,15 @@ export const councilEvents = [
     availableFlexEnergyKwh: 90,
     confidence: 0.86,
     equityFloorPercent: 15,
-    eligibleResources: 4,
+    eligibleResources: 24,
+    sunshineCellId: councilCell.id,
+    sunshineCellName: councilCell.name,
+    windowStart: "2026-08-22T12:00:00+10:00",
+    windowEnd: "2026-08-22T14:00:00+10:00",
+    maxShiftEnergyKwh: 90,
+    explanation:
+      "Use forecast local solar by shifting eligible flexible demand into the midday window.",
+    provenance: "Simulated network forecast",
   },
   {
     id: "event_004",
@@ -42,8 +56,39 @@ export const councilEvents = [
     confidence: 0.89,
     equityFloorPercent: 15,
     eligibleResources: 22,
+    sunshineCellId: councilCell.id,
+    sunshineCellName: councilCell.name,
+    windowStart: "2026-08-16T12:00:00+10:00",
+    windowEnd: "2026-08-16T14:00:00+10:00",
+    maxShiftEnergyKwh: 86,
+    explanation:
+      "Completed community event using Council-approved event and equity rules.",
+    provenance: "Simulated network forecast and mocked device responses",
   },
 ] as const;
+
+export const councilEventCreationFixture = {
+  id: "event_006",
+  name: "Dapto midday solar share",
+  status: "draft" satisfies EventStatus,
+  statusLabel: "Draft",
+  dateLabel: "24 Aug 2026",
+  windowLabel: "12:00–2:00 pm",
+  targetFlexEnergyKwh: 72,
+  maxPowerKw: 18,
+  availableFlexEnergyKwh: councilCell.availableFlexEnergyKwh,
+  confidence: councilCell.forecastConfidence,
+  equityFloorPercent: 20,
+  eligibleResources: 0,
+  sunshineCellId: councilCell.id,
+  sunshineCellName: councilCell.name,
+  windowStart: "2026-08-24T12:00:00+10:00",
+  windowEnd: "2026-08-24T14:00:00+10:00",
+  maxShiftEnergyKwh: 90,
+  explanation:
+    "Create a reviewable midday event from the recommended simulated solar forecast. Resource eligibility and optimisation run later.",
+  provenance: "Simulated network forecast",
+} as const;
 
 export const councilResources = [
   {
