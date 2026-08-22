@@ -1,4 +1,5 @@
 import type { ContributorAttribution, Provenance } from "@/lib/types";
+import { allocateCents } from "./cents";
 
 export interface QualifyingContribution {
   participantId: string;
@@ -50,37 +51,6 @@ export interface AttributionResult {
 }
 
 const roundEnergy = (value: number) => Math.round(value * 1000) / 1000;
-
-function allocateCents(
-  totalCents: number,
-  weightedIds: readonly { id: string; weight: number }[],
-): Map<string, number> {
-  if (!Number.isInteger(totalCents) || totalCents < 0)
-    throw new Error("Pool amounts must be non-negative integer cents");
-  const totalWeight = weightedIds.reduce(
-    (total, item) => total + item.weight,
-    0,
-  );
-  if (totalWeight <= 0 || totalCents === 0)
-    return new Map(weightedIds.map(({ id }) => [id, 0]));
-  const rows = weightedIds.map(({ id, weight }) => {
-    const exact = (totalCents * weight) / totalWeight;
-    return {
-      id,
-      cents: Math.floor(exact),
-      remainder: exact - Math.floor(exact),
-    };
-  });
-  const centsRemaining =
-    totalCents - rows.reduce((total, row) => total + row.cents, 0);
-  const remainderOrder = [...rows].sort(
-    (left, right) =>
-      right.remainder - left.remainder || left.id.localeCompare(right.id),
-  );
-  for (let index = 0; index < centsRemaining; index += 1)
-    remainderOrder[index % remainderOrder.length].cents += 1;
-  return new Map(rows.map(({ id, cents }) => [id, cents]));
-}
 
 export function attributeVerifiedResponse(
   input: AttributionInput,
