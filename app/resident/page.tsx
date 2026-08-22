@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Card } from "@/components/ui/card";
+import {
+  residentEvents,
+  latestVerifiedFlexEnergyKwh,
+  residentPolicy,
+  residentProfile,
+} from "@/lib/data/resident";
 import { getDemoResident } from "@/lib/demo-session";
 import { formatAud } from "@/lib/formatters";
 
@@ -89,6 +95,17 @@ export default async function ResidentPage() {
             {contributor ? "Manage participation" : "Review eligibility"} →
           </Link>
         </Card>
+        <Card className="bg-[var(--surface-muted)]">
+          <p className="text-sm text-[var(--muted)]">Community impact</p>
+          <p className="mt-3 font-mono text-3xl font-semibold">
+            {latestVerifiedFlexEnergyKwh} kWh
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            verified in the latest event
+          </p>
+          <div className="mt-5 border-t border-[var(--border)] pt-4">
+            <p className="text-sm font-semibold">
+              Council policy {residentPolicy.version}
         {resident.resource ? (
           <Card className="bg-[var(--surface-muted)]">
             <div className="flex items-center justify-between gap-3">

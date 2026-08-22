@@ -22,6 +22,13 @@ describe("Sunshine Wallet seed data", () => {
     expect(
       transactions.reduce((sum, item) => sum + item.amount, 0),
     ).toBeCloseTo(settlement.totalValue, 2);
+    expect(verification?.verifiedFlexEnergyKwh).toBe(
+      settlement.verifiedFlexEnergyKwh,
+    );
+    expect(settlement.contributorRewards + settlement.equityCredit).toBeCloseTo(
+      settlement.totalValue,
+      2,
+    );
   });
 
   it("rejects broken foreign keys", () => {

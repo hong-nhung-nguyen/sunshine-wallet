@@ -38,10 +38,9 @@ const participantByResource = new Map(
 );
 const equityRecipients = [
   {
-    participantId: "resident_equity_001",
+    participantId: "resident_001",
     weight: 3,
-    reason:
-      "Priority apartment resident without practical roof access or a controllable device",
+    reason: "Priority renter without practical roof access",
   },
   {
     participantId: "resident_003",
@@ -168,17 +167,17 @@ export function runSunshineEvent(scenario: EventLoopScenario = "success") {
     createdAt: "2026-08-22T15:05:00+10:00",
   });
   const residentAllocation = attribution.equityAllocations.find(
-    ({ participantId }) => participantId === "resident_equity_001",
+    ({ participantId }) => participantId === "resident_001",
   );
   if (!residentAllocation)
     throw new Error("Canonical equity recipient allocation is missing");
   const wallet = applyWalletCredits({
-    participantId: "resident_equity_001",
+    participantId: "resident_001",
     openingBalanceCents: 0,
     existingTransactions: [],
     credits: [
       {
-        participantId: "resident_equity_001",
+        participantId: "resident_001",
         eventId: EVENT_LOOP_ID,
         type: "equity_credit",
         amountCents: residentAllocation.creditCents,
