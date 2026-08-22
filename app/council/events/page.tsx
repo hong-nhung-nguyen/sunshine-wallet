@@ -30,21 +30,30 @@ export default function CouncilEventsPage() {
       </header>
 
       <section className="mt-7" aria-labelledby="today-event-heading">
-        <Card className="border-0 bg-[var(--council-ink)] text-white shadow-md">
+        <Card
+          className="border-0 shadow-lg"
+          style={{ backgroundColor: "var(--council-ink)", color: "white" }}
+        >
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold text-[var(--council-accent)]">
-                Today · {todayEvent.dateLabel}
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-[var(--council-accent)] px-3 py-1 text-xs font-bold tracking-wide text-[var(--council-ink)] uppercase">
+                  Today
+                </span>
+                <span className="text-sm font-semibold text-white">
+                  {todayEvent.dateLabel}
+                </span>
+              </div>
               <h2
                 id="today-event-heading"
-                className="mt-2 text-2xl font-semibold"
+                className="mt-4 text-3xl font-semibold text-white"
               >
                 {todayEvent.name}
               </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                Today&apos;s best window is ready. Check the forecast and
-                available flexibility before optimisation begins.
+              <p className="mt-3 font-mono text-sm font-semibold text-white">
+                {todayEvent.windowLabel} · {todayEvent.targetFlexEnergyKwh} kWh
+                target · {todayEvent.availableFlexEnergyKwh} kWh available ·{" "}
+                {Math.round(todayEvent.confidence * 100)}% confidence
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -62,21 +71,6 @@ export default function CouncilEventsPage() {
               </Link>
             </div>
           </div>
-          <dl className="mt-6 grid gap-4 border-t border-white/15 pt-5 sm:grid-cols-4">
-            <Metric label="Selected window" value={todayEvent.windowLabel} />
-            <Metric
-              label="Target"
-              value={`${todayEvent.targetFlexEnergyKwh} kWh`}
-            />
-            <Metric
-              label="Available"
-              value={`${todayEvent.availableFlexEnergyKwh} kWh`}
-            />
-            <Metric
-              label="Forecast confidence"
-              value={`${Math.round(todayEvent.confidence * 100)}%`}
-            />
-          </dl>
         </Card>
       </section>
 
@@ -139,15 +133,6 @@ export default function CouncilEventsPage() {
           ))}
         </div>
       </section>
-    </div>
-  );
-}
-
-function Metric({ label, value }: Readonly<{ label: string; value: string }>) {
-  return (
-    <div>
-      <dt className="text-xs text-slate-400">{label}</dt>
-      <dd className="mt-1 font-mono font-semibold">{value}</dd>
     </div>
   );
 }
