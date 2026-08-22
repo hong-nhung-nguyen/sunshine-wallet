@@ -11,7 +11,8 @@ const navItems = [
   { href: "/council/optimisation", label: "Optimisation", mark: "05" },
   { href: "/council/simulation", label: "Simulation", mark: "06" },
   { href: "/council/verification", label: "Verification", mark: "07" },
-  { href: "/council/settlement", label: "Settlement", mark: "08" },
+  { href: "/council/attribution", label: "Attribution", mark: "08" },
+  { href: "/council/settlement", label: "Settlement", mark: "09" },
 ] as const;
 
 export function CouncilNav() {

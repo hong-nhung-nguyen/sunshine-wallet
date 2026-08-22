@@ -47,10 +47,10 @@ export default async function CouncilEventDetailPage({
           </p>
         </div>
         <Link
-          href="/council/verification"
+          href="/council/attribution"
           className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
         >
-          Review verification →
+          Review attribution →
         </Link>
       </header>
       <Card className="mt-7">
