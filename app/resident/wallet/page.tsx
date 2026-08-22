@@ -76,7 +76,7 @@ export default function WalletPage() {
               {walletNotification.body}
             </p>
             <Link
-              href="/resident/wallet/credit_101"
+              href={`/resident/wallet/${walletNotification.transactionId}`}
               className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-900 underline underline-offset-4"
             >
               See why you received it

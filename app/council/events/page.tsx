@@ -42,11 +42,13 @@ export default function CouncilEventsPage() {
         </ol>
       </Card>
       <section className="mt-5 space-y-4" aria-label="Events">
-        {councilEvents.map((event, index) => (
+        {councilEvents.map((event) => (
           <Card
             key={event.id}
             className={
-              index === 0 ? "border-l-4 border-l-[var(--council-accent)]" : ""
+              event.status !== "settled"
+                ? "border-l-4 border-l-[var(--council-accent)]"
+                : ""
             }
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -54,7 +56,7 @@ export default function CouncilEventsPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-xl font-semibold">{event.name}</h2>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${index === 0 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${event.status === "settled" ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}
                   >
                     {event.statusLabel}
                   </span>

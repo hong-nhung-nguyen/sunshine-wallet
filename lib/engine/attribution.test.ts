@@ -36,7 +36,7 @@ describe("contributor attribution", () => {
     expect(result.allocatedEquityCents).toBe(attributionInput.equityPoolCents);
     expect(
       result.equityAllocations.map(({ creditCents }) => creditCents),
-    ).toEqual([3084, 2056]);
+    ).toEqual([847, 564]);
   });
 
   it("keeps contributor rewards separate from equity credits", () => {

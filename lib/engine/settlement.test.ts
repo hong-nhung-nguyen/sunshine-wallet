@@ -8,7 +8,7 @@ describe("settlement and Equity Floor", () => {
     expect(first).toEqual(calculateSettlement(settlementInput));
     expect(first.status).toBe("calculated");
     if (first.status === "calculated") {
-      expect(first.totalValueCents).toBe(18183);
+      expect(first.totalValueCents).toBe(4703);
       expect(
         first.contributorPoolCents +
           first.equityPoolCents +

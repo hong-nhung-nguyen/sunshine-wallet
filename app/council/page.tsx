@@ -62,7 +62,14 @@ export default function CouncilPage() {
             {councilCell.availableFlexEnergyKwh}{" "}
             <span className="text-base font-normal">kWh</span>
           </p>
-          <p className="mt-2 text-xs text-emerald-700">125% of event target</p>
+          <p className="mt-2 text-xs text-emerald-700">
+            {Math.round(
+              (councilCell.availableFlexEnergyKwh /
+                activeEvent.targetFlexEnergyKwh) *
+                100,
+            )}
+            % of event target
+          </p>
         </Card>
         <Card>
           <p className="text-sm text-[var(--muted)]">Eligible resources</p>
@@ -127,7 +134,7 @@ export default function CouncilPage() {
 
         <Card className="bg-[var(--council-ink)] text-white">
           <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent)] uppercase">
-            Active event
+            Latest event
           </p>
           <h2 className="mt-3 text-2xl font-semibold">{activeEvent.name}</h2>
           <p className="mt-2 text-sm text-slate-300">
@@ -138,15 +145,15 @@ export default function CouncilPage() {
             {eventStages.map((stage, index) => (
               <li
                 key={stage}
-                className={`flex items-center gap-3 rounded-xl p-3 ${index === 0 ? "bg-white text-[var(--council-ink)]" : "border border-white/10 text-slate-400"}`}
+                className={`flex items-center gap-3 rounded-xl p-3 ${index === eventStages.length - 1 ? "bg-white text-[var(--council-ink)]" : "border border-white/10 text-slate-400"}`}
               >
                 <span
-                  className={`grid size-7 place-items-center rounded-full font-mono text-xs ${index === 0 ? "bg-[var(--council-accent)]" : "bg-white/5"}`}
+                  className={`grid size-7 place-items-center rounded-full font-mono text-xs ${index === eventStages.length - 1 ? "bg-[var(--council-accent)]" : "bg-white/5"}`}
                 >
                   {index + 1}
                 </span>
                 <span className="text-sm font-semibold">{stage}</span>
-                {index === 0 && (
+                {index === eventStages.length - 1 && (
                   <span className="ml-auto text-xs">Current</span>
                 )}
               </li>
@@ -219,7 +226,9 @@ export default function CouncilPage() {
             residents without practical roof access are included in this cell.
           </p>
           <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <p className="text-sm font-semibold">15% Equity Floor</p>
+            <p className="text-sm font-semibold">
+              {activeEvent.equityFloorPercent}% Equity Floor
+            </p>
             <p className="mt-1 text-xs text-[var(--muted)]">
               Council demo policy
             </p>

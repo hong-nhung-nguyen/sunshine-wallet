@@ -125,6 +125,46 @@ export function validateSunshineWalletData(
       issues.push(
         `${settlement.id} and ${verification.id} reference different events`,
       );
+    else if (
+      Math.abs(
+        verification.verifiedFlexEnergyKwh - settlement.verifiedFlexEnergyKwh,
+      ) > 0.001
+    )
+      issues.push(
+        `${settlement.id} verified energy does not match ${verification.id}`,
+      );
+
+    if (
+      Math.abs(
+        settlement.contributorRewards +
+          settlement.equityCredit -
+          settlement.totalValue,
+      ) > 0.01
+    )
+      issues.push(
+        `${settlement.id} contributor and equity pools do not reconcile to total value`,
+      );
+
+    const eventTransactions = data.walletTransactions.filter(
+      ({ eventId, status }) =>
+        eventId === settlement.eventId && status === "posted",
+    );
+    const contributorTransactions = eventTransactions
+      .filter(({ type }) => type === "contributor_reward")
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
+    const equityTransactions = eventTransactions
+      .filter(({ type }) => type === "equity_credit")
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
+    if (
+      Math.abs(contributorTransactions - settlement.contributorRewards) > 0.01
+    )
+      issues.push(
+        `${settlement.id} contributor wallet postings do not match its contributor pool`,
+      );
+    if (Math.abs(equityTransactions - settlement.equityCredit) > 0.01)
+      issues.push(
+        `${settlement.id} equity wallet postings do not match its equity pool`,
+      );
   });
 
   for (const event of data.flexEvents) {

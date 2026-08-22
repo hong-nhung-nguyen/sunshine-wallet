@@ -3,6 +3,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Card } from "@/components/ui/card";
 import {
   residentEvents,
+  latestVerifiedFlexEnergyKwh,
   residentPolicy,
   residentProfile,
 } from "@/lib/data/resident";
@@ -94,7 +95,9 @@ export default function ResidentPage() {
         </Card>
         <Card className="bg-[var(--surface-muted)]">
           <p className="text-sm text-[var(--muted)]">Community impact</p>
-          <p className="mt-3 font-mono text-3xl font-semibold">14.7 kWh</p>
+          <p className="mt-3 font-mono text-3xl font-semibold">
+            {latestVerifiedFlexEnergyKwh} kWh
+          </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
             verified in the latest event
           </p>
