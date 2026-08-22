@@ -36,12 +36,6 @@ export default async function WalletPage() {
             <p className="mt-1 font-mono text-xl font-semibold">
               {formatAud(resident.totalEarned)}
             </p>
-            <Link
-              href={`/resident/wallet/${walletNotification.transactionId}`}
-              className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-900 underline underline-offset-4"
-            >
-              See why you received it
-            </Link>
           </div>
         </div>
       </Card>
