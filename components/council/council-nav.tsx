@@ -6,12 +6,13 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { href: "/council", label: "Overview", mark: "01" },
   { href: "/council/events", label: "Events", mark: "02" },
-  { href: "/council/resources", label: "Resources", mark: "03" },
-  { href: "/council/optimisation", label: "Optimisation", mark: "04" },
-  { href: "/council/simulation", label: "Simulation", mark: "05" },
-  { href: "/council/verification", label: "Verification", mark: "06" },
-  { href: "/council/attribution", label: "Attribution", mark: "07" },
-  { href: "/council/settlement", label: "Settlement", mark: "08" },
+  { href: "/council/windows", label: "Windows", mark: "03" },
+  { href: "/council/resources", label: "Resources", mark: "04" },
+  { href: "/council/optimisation", label: "Optimisation", mark: "05" },
+  { href: "/council/simulation", label: "Simulation", mark: "06" },
+  { href: "/council/verification", label: "Verification", mark: "07" },
+  { href: "/council/attribution", label: "Attribution", mark: "08" },
+  { href: "/council/settlement", label: "Settlement", mark: "09" },
 ] as const;
 
 export function CouncilNav() {
