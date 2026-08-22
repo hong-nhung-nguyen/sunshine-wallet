@@ -14,6 +14,7 @@ const navItems = [
   { href: "/council/verification", label: "Verification", mark: "08" },
   { href: "/council/attribution", label: "Attribution", mark: "09" },
   { href: "/council/settlement", label: "Settlement", mark: "10" },
+  { href: "/council/equity-cells", label: "Equity cells", mark: "11" },
 ] as const;
 
 export function CouncilNav() {
