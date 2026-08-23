@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RetailerInboxButton } from "@/components/council/retailer-inbox-button";
 import { Card } from "@/components/ui/card";
 import { councilEvents } from "@/lib/data/council";
 
@@ -21,12 +22,15 @@ export default function CouncilEventsPage() {
             outcomes.
           </p>
         </div>
-        <Link
-          href="/council/events/new"
-          className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-accent)] px-5 text-sm font-bold text-[var(--council-ink)]"
-        >
-          Create manual event
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <RetailerInboxButton />
+          <Link
+            href="/council/events/new"
+            className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-accent)] px-5 text-sm font-bold text-[var(--council-ink)]"
+          >
+            Create manual event
+          </Link>
+        </div>
       </header>
 
       <section className="mt-7" aria-labelledby="today-event-heading">

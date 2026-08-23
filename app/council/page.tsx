@@ -1,49 +1,31 @@
 import Link from "next/link";
+import { DispatchConsole } from "@/components/council/dispatch-console";
 import { Card } from "@/components/ui/card";
-import {
-  councilCell,
-  councilEvents,
-  councilResources,
-} from "@/lib/data/council";
-
-const chartTimes = [
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-];
+import { councilCell, councilEvents } from "@/lib/data/council";
 
 export default function CouncilPage() {
   const activeEvent = councilEvents[0];
-  const flexibilityCoverage = Math.round(
-    (councilCell.availableFlexEnergyKwh / activeEvent.targetFlexEnergyKwh) *
-      100,
-  );
-
   return (
     <div className="mx-auto max-w-7xl">
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-sm font-semibold text-[var(--council-accent-strong,#956000)]">
-            Operations overview · 23 Aug 2026
+            Dispatch planner · 22 Aug 2026
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--council-ink)] sm:text-4xl">
             {councilCell.name}
           </h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            {councilCell.code} · Forecast and resource data are simulated
+            {councilCell.code} · Who is switching, where and when. Forecast,
+            switching and map data are simulated.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap gap-2">
           <Link
-            href="/council/demo"
-            className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-teal-800"
+            href="/council/events"
+            className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] bg-white px-5 text-sm font-semibold hover:bg-[var(--surface-muted)]"
           >
-            See how it worked →
+            Solar opportunities
           </Link>
           <Link
             href={`/council/events/${activeEvent.id}`}
@@ -54,8 +36,12 @@ export default function CouncilPage() {
         </div>
       </header>
 
+      <div className="mt-6">
+        <DispatchConsole />
+      </div>
+
       <section
-        className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
         aria-label="Cell summary"
       >
         <Card className="border-l-4 border-l-rose-500">
@@ -64,7 +50,7 @@ export default function CouncilPage() {
             <p className="text-3xl font-semibold capitalize">
               {councilCell.constraintRisk}
             </p>
-            <span className="text-xs font-semibold text-rose-800">
+            <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800">
               Action advised
             </span>
           </div>
@@ -76,7 +62,7 @@ export default function CouncilPage() {
             <span className="text-base font-normal">kWh</span>
           </p>
           <p className="mt-2 text-xs text-[var(--muted)]">
-            12:00–2:00 pm window
+            {councilCell.recommendedWindow} window
           </p>
         </Card>
         <Card>
@@ -86,258 +72,125 @@ export default function CouncilPage() {
             <span className="text-base font-normal">kWh</span>
           </p>
           <p className="mt-2 text-xs text-emerald-700">
-            {flexibilityCoverage}% of event target
+            {Math.round(
+              (councilCell.availableFlexEnergyKwh /
+                activeEvent.targetFlexEnergyKwh) *
+                100,
+            )}
+            % of event target
           </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-[var(--muted)]">Eligible resources</p>
-          <p className="mt-3 font-mono text-3xl font-semibold">
-            {activeEvent.eligibleResources}
-          </p>
-          <p className="mt-2 text-xs text-[var(--muted)]">Hard gates passed</p>
-        </Card>
-      </section>
-
-      <section className="mt-5" aria-labelledby="forecast-decision-heading">
-        <Card className="overflow-hidden p-0">
-          <div className="border-b border-[var(--border)] p-6 sm:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent-strong,#956000)] uppercase">
-                  Today&apos;s event decision
-                </p>
-                <h2
-                  id="forecast-decision-heading"
-                  className="mt-2 text-2xl font-semibold"
-                >
-                  Solar-rich flexibility window
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                  The engine compares solar opportunity with baseline demand and
-                  selects the safest window with enough available flexibility.
-                </p>
-              </div>
-              <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold">
-                {Math.round(activeEvent.confidence * 100)}% confidence
-              </span>
-            </div>
-            <dl className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <DecisionMetric label="Constraint window" value="12:00–14:00" />
-              <DecisionMetric
-                label="Target flexibility"
-                value={`${activeEvent.targetFlexEnergyKwh} kWh`}
-              />
-              <DecisionMetric
-                label="Available flexibility"
-                value={`${activeEvent.availableFlexEnergyKwh} kWh`}
-              />
-              <DecisionMetric
-                label="Eligible resources"
-                value={`${activeEvent.eligibleResources}`}
-              />
-            </dl>
-          </div>
-
-          <div className="p-6 sm:p-8">
-            <div className="rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-6">
-              <svg
-                viewBox="0 0 800 280"
-                role="img"
-                aria-labelledby="forecast-chart-title forecast-chart-description"
-                className="h-auto w-full"
-              >
-                <title id="forecast-chart-title">
-                  Daily solar opportunity and baseline demand
-                </title>
-                <desc id="forecast-chart-description">
-                  Solar opportunity rises above baseline demand around midday.
-                  The selected event window is noon to 2 pm.
-                </desc>
-                {[40, 90, 140, 190, 240].map((y) => (
-                  <line
-                    key={y}
-                    x1="52"
-                    y1={y}
-                    x2="772"
-                    y2={y}
-                    stroke="#dce4d9"
-                    strokeWidth="1"
-                  />
-                ))}
-                <rect
-                  x="310"
-                  y="24"
-                  width="205"
-                  height="216"
-                  fill="#f2b84b"
-                  fillOpacity="0.12"
-                  stroke="#e3a008"
-                  strokeWidth="2"
-                />
-                <polyline
-                  points="52,220 155,202 258,150 361,78 464,42 567,62 670,145 772,215"
-                  fill="none"
-                  stroke="#dc7f19"
-                  strokeWidth="4"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-                <polyline
-                  points="52,168 155,172 258,176 361,178 464,180 567,174 670,164 772,157"
-                  fill="none"
-                  stroke="#246b9a"
-                  strokeWidth="4"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-                {chartTimes.map((label, index) => (
-                  <text
-                    key={label}
-                    x={52 + index * 102.85}
-                    y="265"
-                    textAnchor="middle"
-                    fontSize="12"
-                    fill="#5f6f65"
-                  >
-                    {label}
-                  </text>
-                ))}
-                <text
-                  x="412"
-                  y="226"
-                  textAnchor="middle"
-                  fontSize="13"
-                  fontWeight="700"
-                  fill="#956000"
-                >
-                  Selected · 12:00–14:00
-                </text>
-              </svg>
-              <div
-                className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)]"
-                aria-label="Chart legend"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <i className="h-0.5 w-8 bg-orange-600" />
-                  Solar opportunity
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <i className="h-0.5 w-8 bg-sky-700" />
-                  Baseline demand
-                </span>
-                <span>Source: simulated network forecast</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-[var(--surface-muted)] px-6 py-5 sm:px-8">
-            <div>
-              <p className="font-semibold text-[var(--council-ink)]">
-                Event proposed for 12:00–14:00
-              </p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                {activeEvent.targetFlexEnergyKwh} kWh is required and{" "}
-                {activeEvent.availableFlexEnergyKwh} kWh is available, so this
-                window passes the flexibility gate.
-              </p>
-            </div>
-            <Link
-              href={`/council/events/${activeEvent.id}`}
-              className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
-            >
-              Review proposed event →
-            </Link>
-          </div>
-        </Card>
-      </section>
-
-      <section className="mt-5 grid gap-5 xl:grid-cols-[1fr_18rem]">
-        <Card>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent-strong,#956000)] uppercase">
-                Scoring summary
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">
-                Top candidate resources
-              </h2>
-            </div>
-            <Link
-              href="/council/resources"
-              className="text-sm font-semibold text-teal-800"
-            >
-              View all →
-            </Link>
-          </div>
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-left text-sm">
-              <thead className="border-b border-[var(--border)] text-xs text-[var(--muted)]">
-                <tr>
-                  <th className="pb-3 font-medium">Resource</th>
-                  <th className="pb-3 font-medium">Type</th>
-                  <th className="pb-3 font-medium">Capacity</th>
-                  <th className="pb-3 text-right font-medium">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {councilResources.slice(0, 3).map((resource) => (
-                  <tr
-                    key={resource.id}
-                    className="border-b border-[var(--border)] last:border-0"
-                  >
-                    <td className="py-4">
-                      <p className="font-semibold">{resource.name}</p>
-                      <p className="text-xs text-[var(--muted)]">
-                        {resource.id}
-                      </p>
-                    </td>
-                    <td className="py-4">{resource.type}</td>
-                    <td className="py-4 font-mono">
-                      {resource.capacityKwh} kWh
-                    </td>
-                    <td className="py-4 text-right">
-                      <span className="rounded-full bg-emerald-100 px-3 py-1 font-mono font-semibold text-emerald-900">
-                        {resource.score}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </Card>
         <Card>
           <p className="text-sm text-[var(--muted)]">Equity reach</p>
-          <p className="mt-3 font-mono text-4xl font-semibold">
+          <p className="mt-3 font-mono text-3xl font-semibold">
             {councilCell.roofAccessResidents}
           </p>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            residents without practical roof access are included in this cell.
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            residents without practical roof access
           </p>
-          <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <p className="text-sm font-semibold">
-              {activeEvent.equityFloorPercent}% monthly Equity Pool
-            </p>
-            <p className="mt-1 text-xs text-[var(--muted)]">
-              Council demo policy
-            </p>
-          </div>
         </Card>
       </section>
-    </div>
-  );
-}
 
-function DecisionMetric({
-  label,
-  value,
-}: Readonly<{ label: string; value: string }>) {
-  return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
-      <dt className="text-sm text-[var(--muted)]">{label}</dt>
-      <dd className="mt-2 font-mono text-2xl font-semibold text-[var(--council-ink)]">
-        {value}
-      </dd>
+      <section className="mt-5 grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">
+        <Card className="metric-grid overflow-hidden">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent-strong,#956000)] uppercase">
+                Forecast context
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold">
+                Midday export opportunity
+              </h2>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold shadow-sm">
+              {Math.round(councilCell.forecastConfidence * 100)}% confidence
+            </span>
+          </div>
+          <div
+            className="mt-8 flex h-36 items-stretch gap-3"
+            aria-label="Simulated solar export forecast from 9 am to 4 pm"
+          >
+            {[28, 45, 68, 92, 100, 84, 57, 32].map((height, index) => (
+              <div
+                key={index}
+                className="flex flex-1 flex-col items-center gap-2"
+              >
+                {/* A percentage height needs a parent with a definite one. */}
+                <div className="flex w-full flex-1 items-end">
+                  <div
+                    className={`w-full rounded-t-md ${index >= 3 && index <= 4 ? "bg-[var(--council-accent)]" : "bg-teal-700/25"}`}
+                    style={{ height: `${height}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-[var(--muted)]">
+                  {index + 9}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)]">
+            <span>
+              <b className="text-[var(--foreground)]">Recommended:</b>{" "}
+              {councilCell.recommendedWindow}
+            </span>
+            <span>
+              <b className="text-[var(--foreground)]">Source:</b> simulated
+              network forecast
+            </span>
+            <Link
+              href="/council/windows"
+              className="font-semibold text-teal-800"
+            >
+              Review selection →
+            </Link>
+          </div>
+        </Card>
+
+        <Card className="bg-[var(--council-ink)] text-white">
+          <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent)] uppercase">
+            How a switch gets on the map
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold">{activeEvent.name}</h2>
+          <ol className="mt-6 space-y-3 text-sm">
+            {[
+              {
+                title: "Review the opportunity",
+                body: "Events lists the best simulated solar windows.",
+              },
+              {
+                title: "Open the record and assign",
+                body: "Pick the retailer or battery owner that will switch.",
+              },
+              {
+                title: "They approve",
+                body: "The request waits with the partner until answered.",
+              },
+              {
+                title: "Watch it live",
+                body: "Approved switches appear on the map above; hover for area and time.",
+              },
+            ].map((step, index) => (
+              <li key={step.title} className="flex gap-3">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10 font-mono text-xs text-[var(--council-accent)]">
+                  {index + 1}
+                </span>
+                <span>
+                  <b className="font-semibold">{step.title}</b>
+                  <span className="mt-0.5 block text-slate-300">
+                    {step.body}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <Link
+            href="/council/events"
+            className="mt-6 inline-flex min-h-11 items-center rounded-full bg-[var(--council-accent)] px-5 text-sm font-bold text-[var(--council-ink)]"
+          >
+            View records →
+          </Link>
+        </Card>
+      </section>
     </div>
   );
 }

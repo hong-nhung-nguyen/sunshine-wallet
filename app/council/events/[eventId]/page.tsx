@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AssignSwitchPanel } from "@/components/council/assign-switch-panel";
+import { EventAssignments } from "@/components/council/event-assignments";
 import { Card } from "@/components/ui/card";
 import {
   councilEventCreationFixture,
@@ -45,6 +47,12 @@ export default async function CouncilEventDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <AssignSwitchPanel
+            eventId={event.id}
+            windowStart={event.windowStart}
+            windowEnd={event.windowEnd}
+            targetFlexEnergyKwh={event.targetFlexEnergyKwh}
+          />
           <Link
             href="/council/demo"
             className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-teal-800"
@@ -185,6 +193,7 @@ export default async function CouncilEventDetailPage({
           </div>
         )}
       </Card>
+      <EventAssignments eventId={event.id} />
     </div>
   );
 }
