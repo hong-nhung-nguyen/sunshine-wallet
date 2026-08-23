@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import {
+  PROTOTYPE_ALWAYS_CONFIRMS,
+  demoVerifiableNmi,
+} from "@/lib/demo/prototype-mode";
 import { verifyContributor } from "@/lib/engine/contributor-verification";
 import { isValidNmi, resolveNmi } from "@/services/retailer";
 
@@ -13,10 +17,10 @@ export default async function ContributorOnboardingPage({
   const serial = (params.serial ?? "").trim();
   const hasDocuments = params.documents === "on";
   const declaredKw = Number(params.sizeKw);
-  const checked = params.checked === "1" && isValidNmi(nmi);
+  const submitted = params.checked === "1";
+  const checked = submitted && (PROTOTYPE_ALWAYS_CONFIRMS || isValidNmi(nmi));
 
-  const resolution = checked ? resolveNmi(nmi) : null;
-  const result = checked
+  const entered = isValidNmi(nmi)
     ? verifyContributor({
         householdId: "hh_signup",
         nmi,
@@ -27,6 +31,23 @@ export default async function ContributorOnboardingPage({
           : undefined,
       })
     : null;
+
+  // Prototype mode: anything the mocked registry will not confirm falls back
+  // to a demo system, so the walk-through always reaches the end. The refusal
+  // paths are still there — turn PROTOTYPE_ALWAYS_CONFIRMS off to see them.
+  const substituted =
+    checked && PROTOTYPE_ALWAYS_CONFIRMS && entered?.outcome !== "verified";
+  const effectiveNmi = substituted ? demoVerifiableNmi : nmi;
+
+  const resolution = checked ? resolveNmi(effectiveNmi) : null;
+  const result = !checked
+    ? null
+    : substituted
+      ? verifyContributor({
+          householdId: "hh_signup",
+          nmi: demoVerifiableNmi,
+        })
+      : entered;
 
   const tone =
     result?.outcome === "verified"
@@ -46,9 +67,9 @@ export default async function ContributorOnboardingPage({
       <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
         The Solar Pool pays producers, so we check the system exists before
         enrolling you. We look at your network export approval and the
-        small-scale registry your installer lodged. We never store your
-        inverter serial — only a one-way hash of it, so the same system cannot
-        be enrolled twice.
+        small-scale registry your installer lodged. We never store your inverter
+        serial — only a one-way hash of it, so the same system cannot be
+        enrolled twice.
       </p>
 
       <Card className="mt-7">
@@ -60,7 +81,9 @@ export default async function ContributorOnboardingPage({
             </span>
             <input
               name="nmi"
-              defaultValue={nmi}
+              defaultValue={
+                nmi || (PROTOTYPE_ALWAYS_CONFIRMS ? demoVerifiableNmi : "")
+              }
               placeholder="10 or 11 characters"
               className="mt-2 w-full rounded-xl border border-[var(--border)] px-4 py-3 font-mono"
             />
@@ -87,7 +110,9 @@ export default async function ContributorOnboardingPage({
           <label className="block">
             <span className="text-sm font-semibold">
               System size in kW{" "}
-              <span className="font-normal text-[var(--muted)]">(optional)</span>
+              <span className="font-normal text-[var(--muted)]">
+                (optional)
+              </span>
             </span>
             <input
               name="sizeKw"
@@ -124,7 +149,7 @@ export default async function ContributorOnboardingPage({
           </button>
         </form>
 
-        {params.checked === "1" && !isValidNmi(nmi) && (
+        {submitted && !PROTOTYPE_ALWAYS_CONFIRMS && !isValidNmi(nmi) && (
           <p className="mt-4 text-sm font-semibold text-rose-700">
             A NMI is 10 or 11 letters and digits. Check the number on your bill.
           </p>
@@ -148,6 +173,16 @@ export default async function ContributorOnboardingPage({
             )}
           </div>
           <p className="mt-3 text-sm">{result.summary}</p>
+          {substituted && (
+            <p className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-xs leading-5 text-[var(--muted)]">
+              Prototype mode: what you entered did not clear the mocked
+              registry, so demo system{" "}
+              <span className="font-mono">{demoVerifiableNmi}</span> was used so
+              the walk-through can continue. Set{" "}
+              <code>PROTOTYPE_ALWAYS_CONFIRMS</code> to false in{" "}
+              <code>lib/demo/prototype-mode.ts</code> to see the real refusal.
+            </p>
+          )}
 
           <ul className="mt-4 space-y-2 border-t border-black/10 pt-4">
             {result.gates.map((gate) => (
