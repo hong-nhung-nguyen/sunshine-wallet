@@ -45,13 +45,13 @@ export default function CouncilPage() {
         aria-label="Cell summary"
       >
         <Card className="border-l-4 border-l-rose-500">
-          <p className="text-sm text-[var(--muted)]">Constraint risk</p>
+          <p className="text-sm text-[var(--muted)]">Network congestion risk</p>
           <div className="mt-3 flex items-end justify-between gap-3">
             <p className="text-3xl font-semibold capitalize">
               {councilCell.constraintRisk}
             </p>
             <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800">
-              Action advised
+              Schedule an event
             </span>
           </div>
         </Card>
@@ -81,12 +81,13 @@ export default function CouncilPage() {
           </p>
         </Card>
         <Card>
-          <p className="text-sm text-[var(--muted)]">Equity reach</p>
+          <p className="text-sm text-[var(--muted)]">Event target</p>
           <p className="mt-3 font-mono text-3xl font-semibold">
-            {councilCell.roofAccessResidents}
+            {activeEvent.targetFlexEnergyKwh}{" "}
+            <span className="text-base font-normal">kWh</span>
           </p>
           <p className="mt-2 text-xs text-[var(--muted)]">
-            residents without practical roof access
+            flexible energy required
           </p>
         </Card>
       </section>
