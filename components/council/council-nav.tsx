@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/council", label: "Overview", mark: "01" },
+  { href: "/council", label: "Dashboard", mark: "01" },
   { href: "/council/events", label: "Events", mark: "02" },
   { href: "/council/demo", label: "Event loop", mark: "03" },
   { href: "/council/windows", label: "Windows", mark: "04" },

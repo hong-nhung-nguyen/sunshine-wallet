@@ -8,7 +8,6 @@ import {
   councilEvents,
   councilPolicy,
   councilResources,
-  eventStages,
 } from "@/lib/data/council";
 
 const eventRecords = [...councilEvents, councilEventCreationFixture];
@@ -23,7 +22,6 @@ export default async function CouncilEventDetailPage({
   const { eventId } = await params;
   const event = eventRecords.find((item) => item.id === eventId);
   if (!event) notFound();
-  const currentStage = event.status === "settled" ? 4 : 0;
   return (
     <div className="mx-auto max-w-7xl">
       <Link
@@ -48,13 +46,19 @@ export default async function CouncilEventDetailPage({
             {event.id} · {event.dateLabel} · {event.windowLabel}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <AssignSwitchPanel
             eventId={event.id}
             windowStart={event.windowStart}
             windowEnd={event.windowEnd}
             targetFlexEnergyKwh={event.targetFlexEnergyKwh}
           />
+          <Link
+            href="/council/demo"
+            className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-teal-800"
+          >
+            See how it worked →
+          </Link>
           <Link
             href="/council/attribution"
             className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
@@ -63,27 +67,7 @@ export default async function CouncilEventDetailPage({
           </Link>
         </div>
       </header>
-      <Card className="mt-7">
-        <p className="text-xs font-bold tracking-[0.12em] text-teal-700 uppercase">
-          Lifecycle
-        </p>
-        <ol className="mt-5 grid gap-2 sm:grid-cols-5">
-          {eventStages.map((stage, index) => (
-            <li
-              key={stage}
-              className={`rounded-xl p-4 ${index === currentStage ? "bg-[var(--council-ink)] text-white" : "bg-[var(--surface-muted)]"}`}
-            >
-              <span
-                className={`font-mono text-xs ${index === currentStage ? "text-[var(--council-accent)]" : "text-teal-700"}`}
-              >
-                0{index + 1}
-              </span>
-              <p className="mt-2 text-sm font-semibold">{stage}</p>
-            </li>
-          ))}
-        </ol>
-      </Card>
-      <section className="mt-5 grid gap-5 xl:grid-cols-[1fr_20rem]">
+      <section className="mt-7 grid gap-5 xl:grid-cols-[1fr_20rem]">
         <Card>
           <h2 className="text-xl font-semibold">Event parameters</h2>
           <dl className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4">
