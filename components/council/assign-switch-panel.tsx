@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { dispatchSites, formatClock } from "@/lib/data/dispatch";
+import {
+  dispatchSites,
+  formatClock,
+  type DispatchSite,
+  type SwitchParty,
+} from "@/lib/data/dispatch";
 import { assign, useAssignments } from "@/lib/dispatch/store";
 import { statusLabels } from "@/lib/dispatch/view";
 import { statusStyles } from "./dispatch-style";
@@ -42,6 +47,7 @@ export function AssignSwitchPanel({
   const [startValue, setStartValue] = useState(isoToTimeValue(windowStart));
   const [endValue, setEndValue] = useState(isoToTimeValue(windowEnd));
   const [sentTo, setSentTo] = useState<string[] | null>(null);
+  const [expanded, setExpanded] = useState<string[]>([]);
 
   const existing = useMemo(() => {
     const map = new Map<string, (typeof assignments)[number]>();
@@ -58,6 +64,34 @@ export function AssignSwitchPanel({
     const current = existing.get(site.resourceId);
     return !current || current.status === "cancelled";
   });
+
+  /**
+   * The planner picks a counterparty first, then the devices under it. Sites
+   * are grouped rather than listed flat so a retailer with several customers
+   * reads as one decision, not several unrelated ones.
+   */
+  const parties = useMemo(() => {
+    const byName = new Map<
+      string,
+      { name: string; party: SwitchParty; sites: DispatchSite[] }
+    >();
+    for (const site of dispatchSites) {
+      const entry = byName.get(site.partyName) ?? {
+        name: site.partyName,
+        party: site.party,
+        sites: [],
+      };
+      entry.sites.push(site);
+      byName.set(site.partyName, entry);
+    }
+    return [...byName.values()].sort((left, right) =>
+      left.party === right.party
+        ? left.name.localeCompare(right.name)
+        : left.party === "retailer"
+          ? -1
+          : 1,
+    );
+  }, []);
 
   const selectedKwh = selected.reduce((total, resourceId) => {
     const site = dispatchSites.find((item) => item.resourceId === resourceId);
@@ -240,56 +274,159 @@ export function AssignSwitchPanel({
                 )}
 
                 <ul className="mt-4 space-y-2">
-                  {dispatchSites.map((site) => {
-                    const current = existing.get(site.resourceId);
-                    const locked =
-                      Boolean(current) && !assignable.includes(site);
-                    const checked = selected.includes(site.resourceId);
+                  {parties.map((party) => {
+                    const rows = party.sites.map((site) => {
+                      const current = existing.get(site.resourceId);
+                      return {
+                        site,
+                        current,
+                        locked: Boolean(current) && !assignable.includes(site),
+                      };
+                    });
+                    const selectable = rows.filter((row) => !row.locked);
+                    const chosen = selectable.filter((row) =>
+                      selected.includes(row.site.resourceId),
+                    );
+                    const allChosen =
+                      selectable.length > 0 &&
+                      chosen.length === selectable.length;
+                    const someChosen = chosen.length > 0 && !allChosen;
+                    const isOpen = expanded.includes(party.name);
+                    const partyKwh = chosen.reduce(
+                      (total, row) => total + row.site.capacityKwh,
+                      0,
+                    );
+                    const panelId = `party-${party.name.replace(/\s+/g, "-")}`;
+
+                    const toggleParty = (next: boolean) => {
+                      const ids = selectable.map((row) => row.site.resourceId);
+                      setSelected((current) =>
+                        next
+                          ? [...new Set([...current, ...ids])]
+                          : current.filter((id) => !ids.includes(id)),
+                      );
+                      // Selecting a whole counterparty should reveal what that
+                      // chose, rather than hiding it behind a count.
+                      if (next && !isOpen)
+                        setExpanded((current) => [...current, party.name]);
+                    };
+
                     return (
-                      <li key={site.resourceId}>
-                        <label
-                          className={`flex items-start gap-3 rounded-2xl border p-4 ${locked ? "border-[var(--border)] bg-[var(--surface-muted)] opacity-70" : checked ? "cursor-pointer border-[var(--council-accent)] bg-amber-50" : "cursor-pointer border-[var(--border)] hover:bg-[var(--surface-muted)]"}`}
-                        >
+                      <li
+                        key={party.name}
+                        className={`overflow-hidden rounded-2xl border ${allChosen || someChosen ? "border-[var(--council-accent)]" : "border-[var(--border)]"}`}
+                      >
+                        <div className="flex items-center gap-3 p-4">
                           <input
                             type="checkbox"
-                            disabled={locked}
-                            checked={checked}
+                            aria-label={`Select every device from ${party.name}`}
+                            disabled={selectable.length === 0}
+                            checked={allChosen}
+                            ref={(node) => {
+                              if (node) node.indeterminate = someChosen;
+                            }}
                             onChange={(event) =>
-                              setSelected((current) =>
-                                event.target.checked
-                                  ? [...current, site.resourceId]
-                                  : current.filter(
-                                      (id) => id !== site.resourceId,
-                                    ),
+                              toggleParty(event.target.checked)
+                            }
+                            className="size-4 shrink-0 accent-[var(--council-ink)]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpanded((current) =>
+                                isOpen
+                                  ? current.filter(
+                                      (name) => name !== party.name,
+                                    )
+                                  : [...current, party.name],
                               )
                             }
-                            className="mt-1 size-4 accent-[var(--council-ink)]"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-semibold">
-                                {site.name}
+                            aria-expanded={isOpen}
+                            aria-controls={panelId}
+                            className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 text-left"
+                          >
+                            <span className="min-w-0">
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-semibold">
+                                  {party.name}
+                                </span>
+                                <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[11px] font-semibold text-[var(--muted)]">
+                                  {party.party === "retailer"
+                                    ? "Retailer"
+                                    : "Battery owner"}
+                                </span>
                               </span>
-                              <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[11px] font-semibold text-[var(--muted)]">
-                                {site.party === "retailer"
-                                  ? "Retailer"
-                                  : "Battery owner"}{" "}
-                                · {site.partyName}
+                              <span className="mt-1 block text-xs text-[var(--muted)]">
+                                {party.sites.length} customer
+                                {party.sites.length === 1 ? "" : "s"} ·{" "}
+                                {chosen.length > 0
+                                  ? `${chosen.length} selected · ${partyKwh.toFixed(1)} kWh`
+                                  : selectable.length === 0
+                                    ? "all already assigned"
+                                    : "none selected"}
                               </span>
                             </span>
-                            <span className="mt-1 block text-xs text-[var(--muted)]">
-                              {site.deviceType} · {site.capacityKwh} kWh ·{" "}
-                              {site.powerKw} kW · {site.address}
+                            <span
+                              aria-hidden="true"
+                              className={`shrink-0 text-lg text-[var(--muted)] transition-transform ${isOpen ? "rotate-90" : ""}`}
+                            >
+                              &rsaquo;
                             </span>
-                            {current && (
-                              <span
-                                className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusStyles[current.status].chip}`}
-                              >
-                                {current.id} · {statusLabels[current.status]}
-                              </span>
-                            )}
-                          </span>
-                        </label>
+                          </button>
+                        </div>
+
+                        {isOpen && (
+                          <ul
+                            id={panelId}
+                            className="space-y-2 border-t border-[var(--border)] bg-[var(--surface-muted)]/50 p-3"
+                          >
+                            {rows.map(({ site, current, locked }) => {
+                              const checked = selected.includes(
+                                site.resourceId,
+                              );
+                              return (
+                                <li key={site.resourceId}>
+                                  <label
+                                    className={`flex items-start gap-3 rounded-xl border bg-white p-3 ${locked ? "border-[var(--border)] opacity-70" : checked ? "cursor-pointer border-[var(--council-accent)] bg-amber-50" : "cursor-pointer border-[var(--border)] hover:bg-[var(--surface-muted)]"}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      disabled={locked}
+                                      checked={checked}
+                                      onChange={(event) =>
+                                        setSelected((current) =>
+                                          event.target.checked
+                                            ? [...current, site.resourceId]
+                                            : current.filter(
+                                                (id) => id !== site.resourceId,
+                                              ),
+                                        )
+                                      }
+                                      className="mt-1 size-4 accent-[var(--council-ink)]"
+                                    />
+                                    <span className="min-w-0 flex-1">
+                                      <span className="text-sm font-semibold">
+                                        {site.name}
+                                      </span>
+                                      <span className="mt-1 block text-xs text-[var(--muted)]">
+                                        {site.deviceType} · {site.capacityKwh}{" "}
+                                        kWh · {site.powerKw} kW · {site.address}
+                                      </span>
+                                      {current && (
+                                        <span
+                                          className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusStyles[current.status].chip}`}
+                                        >
+                                          {current.id} ·{" "}
+                                          {statusLabels[current.status]}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </label>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
                       </li>
                     );
                   })}
