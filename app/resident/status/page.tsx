@@ -10,22 +10,36 @@ export default async function StatusPage() {
         Program status
       </p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-        {contributor ? "You are ready to contribute" : "You are included"}
+        {resident.isNew
+          ? contributor
+            ? "Resource setup required"
+            : "Eligibility review pending"
+          : contributor
+            ? "You are ready to contribute"
+            : "You are included"}
       </h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
         {resident.explanation}
       </p>
-      <Card className="mt-7 border-emerald-200 bg-emerald-50">
-        <p className="text-sm font-semibold text-emerald-800">
-          Active demo account
+      <Card
+        className={`mt-7 ${resident.isNew ? "border-amber-300 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}
+      >
+        <p
+          className={`text-sm font-semibold ${resident.isNew ? "text-amber-900" : "text-emerald-800"}`}
+        >
+          {resident.isNew ? "New demo account" : "Active demo account"}
         </p>
-        <h2 className="mt-2 text-xl font-semibold text-emerald-950">
+        <h2 className="mt-2 text-xl font-semibold">
           {resident.participationLabel}
         </h2>
-        <p className="mt-2 text-sm leading-6 text-emerald-900">
-          {contributor
-            ? `${resident.resource?.name} is registered and available for suitable Dapto events.`
-            : "Council has confirmed your household's community equity eligibility."}
+        <p className="mt-2 text-sm leading-6">
+          {resident.isNew
+            ? contributor
+              ? "No resource is registered yet. Add and verify an eligible device before participating in events."
+              : "Council has not confirmed your household eligibility yet. No credits are issued while review is pending."
+            : contributor
+              ? `${resident.resource?.name} is registered and available for suitable Dapto events.`
+              : "Council has confirmed your household's community equity eligibility."}
         </p>
       </Card>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">

@@ -1,8 +1,15 @@
-export type DemoResidentRole = "contributor" | "non_solar_owner";
+export type DemoResidentRole =
+  | "contributor"
+  | "non_solar_owner"
+  | "new_contributor"
+  | "new_receiver";
+
+export type ResidentParticipationRole = "contributor" | "non_solar_owner";
 
 export type DemoResidentPersona = {
   id: string;
-  role: DemoResidentRole;
+  role: ResidentParticipationRole;
+  isNew: boolean;
   email: string;
   password: string;
   name: string;
@@ -23,7 +30,7 @@ export type DemoResidentPersona = {
     availableKwh: number;
     status: string;
   };
-  nextEvent: {
+  nextEvent: null | {
     id: string;
     title: string;
     dateLabel: string;
@@ -45,6 +52,7 @@ export const demoResidentPersonas = {
   contributor: {
     id: "resident_002",
     role: "contributor",
+    isNew: false,
     email: "contributor@gmail.com",
     password: "abc",
     name: "Noah Williams",
@@ -102,6 +110,7 @@ export const demoResidentPersonas = {
   non_solar_owner: {
     id: "resident_001",
     role: "non_solar_owner",
+    isNew: false,
     email: "nonsolar@gmail.com",
     password: "abc",
     name: "Aisha Patel",
@@ -150,9 +159,56 @@ export const demoResidentPersonas = {
       },
     ],
   },
+  new_contributor: {
+    id: "new_contributor",
+    role: "contributor",
+    isNew: true,
+    email: "new-contributor@demo.local",
+    password: "",
+    name: "New contributor",
+    firstName: "there",
+    initials: "NC",
+    householdLabel: "New contributor household",
+    location: "Dapto Sunshine Cell",
+    walletBalance: 0,
+    pendingCredits: 0,
+    totalEarned: 0,
+    headline: "Set up a resource to start contributing local flexibility.",
+    explanation:
+      "Your contributor account is ready. Council must confirm an eligible energy resource before it can participate in an event.",
+    participationLabel: "Contributor account · setup required",
+    resource: null,
+    nextEvent: null,
+    recentCredits: [],
+  },
+  new_receiver: {
+    id: "new_receiver",
+    role: "non_solar_owner",
+    isNew: true,
+    email: "new-receiver@demo.local",
+    password: "",
+    name: "New receiver",
+    firstName: "there",
+    initials: "NR",
+    householdLabel: "Community receiver household",
+    location: "Dapto Sunshine Cell",
+    walletBalance: 0,
+    pendingCredits: 0,
+    totalEarned: 0,
+    headline: "Your community equity eligibility is ready for review.",
+    explanation:
+      "You do not need solar or flexible equipment. Council reviews household eligibility before including you in a monthly Equity Dividend.",
+    participationLabel: "Community receiver account · review pending",
+    resource: null,
+    nextEvent: null,
+    recentCredits: [],
+  },
 } as const satisfies Record<DemoResidentRole, DemoResidentPersona>;
 
-export const demoAccounts = Object.values(demoResidentPersonas);
+export const demoAccounts = [
+  demoResidentPersonas.contributor,
+  demoResidentPersonas.non_solar_owner,
+];
 
 export function findDemoResident(email: string, password: string) {
   return demoAccounts.find(

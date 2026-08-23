@@ -20,7 +20,7 @@ export default function RegisterPage() {
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
           You do not need rooftop solar, an EV, a battery or controllable
-          equipment to register as a beneficiary.
+          equipment to register as a community receiver.
         </p>
       </header>
       <Card className="mx-auto mt-8 max-w-3xl p-6 sm:p-8">

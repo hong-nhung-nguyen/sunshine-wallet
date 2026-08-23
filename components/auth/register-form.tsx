@@ -10,29 +10,43 @@ export function RegisterForm() {
   const router = useRouter();
   const [role, setRole] = useState<Role>("beneficiary");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
+    setError("");
     const form = new FormData(event.currentTarget);
     const account = {
       name: String(form.get("name") ?? ""),
       email: String(form.get("email") ?? ""),
       role,
     };
-    window.localStorage.setItem(
-      "sunshine-wallet-demo-account",
-      JSON.stringify(account),
-    );
-    window.localStorage.setItem(
-      "sunshine-wallet-demo-session",
-      JSON.stringify(account),
-    );
-    // Sign-up is only the account. Onboarding is where a receiver is scored
-    // and a contributor's system is verified, so both roles go there next.
-    router.push(
-      role === "contributor" ? "/onboarding/contributor" : "/onboarding",
-    );
+
+    try {
+      const response = await fetch("/api/demo/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(account),
+      });
+      const result = (await response.json()) as { message?: string };
+      if (!response.ok) {
+        setError(result.message ?? "Unable to create this demo account.");
+        return;
+      }
+
+      // Account creation and onboarding stay separate. The registration API
+      // creates the fresh, empty wallet session; the original onboarding flow
+      // then scores a receiver or verifies a contributor's system.
+      router.push(
+        role === "contributor" ? "/onboarding/contributor" : "/onboarding",
+      );
+      router.refresh();
+    } catch {
+      setError("Registration is temporarily unavailable. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -152,6 +166,14 @@ export function RegisterForm() {
           reviews program decisions.
         </span>
       </label>
+      {error ? (
+        <p
+          role="alert"
+          className="rounded-2xl bg-red-50 p-3 text-sm font-medium text-red-800"
+        >
+          {error}
+        </p>
+      ) : null}
       <button
         type="submit"
         disabled={submitting}
