@@ -28,8 +28,10 @@ export function RegisterForm() {
       "sunshine-wallet-demo-session",
       JSON.stringify(account),
     );
+    // Sign-up is only the account. Onboarding is where a receiver is scored
+    // and a contributor's system is verified, so both roles go there next.
     router.push(
-      role === "contributor" ? "/resident/events" : "/resident/wallet",
+      role === "contributor" ? "/onboarding/contributor" : "/onboarding",
     );
   }
 
