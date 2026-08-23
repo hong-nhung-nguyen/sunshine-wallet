@@ -4,6 +4,7 @@ import {
   residentPolicy,
 } from "@/lib/data/resident";
 import { augustMonthlyLedger } from "@/lib/data/monthly-ledger";
+import { seedData } from "@/lib/data/seed";
 import { getDemoResident } from "@/lib/demo-session";
 import { allocateCents } from "@/lib/engine/cents";
 import { formatAud } from "@/lib/formatters";
@@ -21,18 +22,23 @@ export default async function ResidentPage() {
     0,
   );
   const monthlyCreditsWithBreakdown = monthlyCredits.map((credit) => {
+    const includedEvents = augustMonthlyLedger.includedEventIds.map((eventId) =>
+      seedData.flexEvents.find(({ id }) => id === eventId),
+    );
     const allocated = allocateCents(
       Math.round(credit.amount * 100),
-      resident.recentCredits.map((event) => ({
-        id: event.id,
-        weight: event.amount,
+      includedEvents.map((event) => ({
+        id: event?.id ?? "unknown",
+        weight: 1,
       })),
     );
     return {
       credit,
-      events: resident.recentCredits.map((event) => ({
-        ...event,
-        allocatedAmount: (allocated.get(event.id) ?? 0) / 100,
+      events: includedEvents.map((event) => ({
+        id: event?.id ?? "unknown",
+        label: event?.name ?? "Verified Sunshine event",
+        date: event?.window.start.slice(0, 10) ?? "2026-08",
+        allocatedAmount: (allocated.get(event?.id ?? "unknown") ?? 0) / 100,
       })),
     };
   });
@@ -195,11 +201,8 @@ export default async function ResidentPage() {
             </span>
           </div>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            {resident.nextEvent.action} Estimated credit:{" "}
-            <strong className="text-[var(--foreground)]">
-              {formatAud(resident.nextEvent.estimatedCredit)}
-            </strong>
-            .
+            {resident.nextEvent.action} If the event passes verification, its
+            value will be included in the monthly settlement.
           </p>
           <details className="group mt-5 border-t border-[var(--border)] pt-1">
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-[var(--primary)]">
@@ -216,11 +219,9 @@ export default async function ResidentPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-[var(--muted)]">
-                  Estimated credit
-                </dt>
-                <dd className="mt-1 font-mono font-semibold">
-                  {formatAud(resident.nextEvent.estimatedCredit)}
+                <dt className="text-xs text-[var(--muted)]">Settlement</dt>
+                <dd className="mt-1 font-semibold">
+                  Monthly, after verification
                 </dd>
               </div>
               <div className="col-span-2">

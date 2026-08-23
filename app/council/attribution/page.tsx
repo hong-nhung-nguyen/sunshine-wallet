@@ -26,7 +26,8 @@ export default function AttributionPage() {
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
             Qualifying resource response is converted into proportional
             accounting shares, capped by the verified event outcome. Contributor
-            Rewards and roof-access Equity Dividends remain separate.
+            These shares feed the monthly settlement; this page does not post
+            event-level rewards.
           </p>
         </div>
         <Link
@@ -135,7 +136,9 @@ export default function AttributionPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-[var(--muted)]">Reward</dt>
+                    <dt className="text-xs text-[var(--muted)]">
+                      Monthly-pool share
+                    </dt>
                     <dd className="mt-1 font-mono font-semibold">
                       {formatAud(attribution.rewardAmount)}
                     </dd>
@@ -177,10 +180,10 @@ export default function AttributionPage() {
       <section className="mt-5 grid gap-5 lg:grid-cols-2">
         <Card>
           <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent-strong,#956000)] uppercase">
-            Contributor Reward allocation
+            Contributor weighting preview
           </p>
           <h2 className="mt-2 text-xl font-semibold">
-            Resource participation value
+            Input to monthly Solar Pool
           </h2>
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[32rem] text-left text-sm">
@@ -189,7 +192,7 @@ export default function AttributionPage() {
                   <th className="pb-3 font-medium">Participant</th>
                   <th className="pb-3 font-medium">Resource</th>
                   <th className="pb-3 font-medium">Share</th>
-                  <th className="pb-3 text-right font-medium">Reward</th>
+                  <th className="pb-3 text-right font-medium">Pool share</th>
                 </tr>
               </thead>
               <tbody>
@@ -229,7 +232,7 @@ export default function AttributionPage() {
 
         <Card>
           <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-accent-strong,#956000)] uppercase">
-            Equity Dividend allocation
+            Equity allocation preview
           </p>
           <h2 className="mt-2 text-xl font-semibold">
             Roof-access benefit stays separate
@@ -274,13 +277,12 @@ export default function AttributionPage() {
           Downstream settlement boundary
         </p>
         <h2 className="mt-2 text-xl font-semibold text-amber-950">
-          Pools are inputs, not invented here
+          Event attribution feeds monthly settlement
         </h2>
         <p className="mt-2 text-sm leading-6 text-amber-900">
-          This engine allocates the provided Council-approved pools in integer
-          cents and reconciles every cent. Issue 14 remains responsible for
-          calculating total program value and enforcing the Equity Floor before
-          these allocations may be settled.
+          Event response establishes contribution weights. The monthly engine
+          aggregates every verified event, applies governance once, and posts
+          one wallet transaction per eligible household.
         </p>
       </Card>
     </div>

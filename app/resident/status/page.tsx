@@ -45,7 +45,7 @@ export default async function StatusPage() {
             Value pathway
           </p>
           <p className="mt-3 text-xl font-semibold">
-            {contributor ? "Verified delivery" : "20% equity floor"}
+            {contributor ? "Verified delivery" : "60% monthly Equity Pool"}
           </p>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
             {contributor

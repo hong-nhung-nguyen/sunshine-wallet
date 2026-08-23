@@ -129,7 +129,7 @@ export default async function CouncilEventDetailPage({
             {event.equityFloorPercent}%
           </p>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            minimum Equity Floor
+            monthly Equity Pool policy
           </p>
           <p className="mt-5 border-t border-[var(--border)] pt-4 text-sm font-semibold">
             {councilPolicy.version}

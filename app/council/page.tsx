@@ -316,7 +316,7 @@ export default function CouncilPage() {
           </p>
           <div className="mt-5 border-t border-[var(--border)] pt-4">
             <p className="text-sm font-semibold">
-              {activeEvent.equityFloorPercent}% Equity Floor
+              {activeEvent.equityFloorPercent}% monthly Equity Pool
             </p>
             <p className="mt-1 text-xs text-[var(--muted)]">
               Council demo policy
