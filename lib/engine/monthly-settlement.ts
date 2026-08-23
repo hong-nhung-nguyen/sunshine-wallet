@@ -54,6 +54,8 @@ export interface MonthlySettlementInput {
   /** Σ verified value for the period, in integer cents. */
   potCents: number;
   households: readonly EquityHousehold[];
+  /** Optional verified contribution weight by Solar Pool household. */
+  contributorWeights?: Readonly<Record<string, number>>;
   policy: GovernancePolicy;
   createdAt: string;
 }
@@ -125,9 +127,7 @@ export function validateGovernancePolicy(
   const reasons: string[] = [];
 
   const total =
-    policy.equityShareBps +
-    policy.contributorShareBps +
-    policy.reserveShareBps;
+    policy.equityShareBps + policy.contributorShareBps + policy.reserveShareBps;
   if (total !== TOTAL_BASIS_POINTS) {
     rejectionCodes.push("INVALID_POOL_TOTAL");
     reasons.push(
@@ -160,9 +160,7 @@ export function validateGovernancePolicy(
   return { valid: rejectionCodes.length === 0, rejectionCodes, reasons };
 }
 
-export function settleMonth(
-  input: MonthlySettlementInput,
-): MonthlySettlement {
+export function settleMonth(input: MonthlySettlementInput): MonthlySettlement {
   const validation = validateGovernancePolicy(input.policy);
   const rejectionCodes = [...validation.rejectionCodes];
   const reasons = [...validation.reasons];
@@ -197,7 +195,12 @@ export function settleMonth(
   );
   const contributorShares = allocateCents(
     contributors.length > 0 ? contributorPoolCents : 0,
-    contributors.map((household) => ({ id: household.id, weight: 1 })),
+    contributors.map((household) => ({
+      id: household.id,
+      weight: input.contributorWeights
+        ? (input.contributorWeights[household.id] ?? 0)
+        : 1,
+    })),
   );
   for (const household of contributors)
     credits.push({

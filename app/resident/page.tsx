@@ -3,13 +3,39 @@ import {
   latestVerifiedFlexEnergyKwh,
   residentPolicy,
 } from "@/lib/data/resident";
+import { augustMonthlyLedger } from "@/lib/data/monthly-ledger";
 import { getDemoResident } from "@/lib/demo-session";
+import { allocateCents } from "@/lib/engine/cents";
 import { formatAud } from "@/lib/formatters";
 
 export default async function ResidentPage() {
   const resident = await getDemoResident();
   const latestCredit = resident.recentCredits[0];
   const contributor = resident.role === "contributor";
+  const monthlyCredits = augustMonthlyLedger.ledger.filter(
+    ({ participantId, status }) =>
+      participantId === resident.id && status === "posted",
+  );
+  const monthlyCreditTotal = monthlyCredits.reduce(
+    (sum, transaction) => sum + transaction.amount,
+    0,
+  );
+  const monthlyCreditsWithBreakdown = monthlyCredits.map((credit) => {
+    const allocated = allocateCents(
+      Math.round(credit.amount * 100),
+      resident.recentCredits.map((event) => ({
+        id: event.id,
+        weight: event.amount,
+      })),
+    );
+    return {
+      credit,
+      events: resident.recentCredits.map((event) => ({
+        ...event,
+        allocatedAmount: (allocated.get(event.id) ?? 0) / 100,
+      })),
+    };
+  });
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -30,11 +56,11 @@ export default async function ResidentPage() {
               Your Sunshine balance
             </p>
             <p className="mt-2 font-mono text-5xl font-semibold tracking-tight">
-              {formatAud(resident.walletBalance)}
+              {formatAud(resident.walletBalance + monthlyCreditTotal)}
             </p>
             <p className="mt-2 text-sm text-violet-100">
-              {formatAud(resident.totalEarned)} earned from verified community
-              events
+              {formatAud(resident.totalEarned + monthlyCreditTotal)} earned from
+              verified community events
             </p>
           </div>
           <div className="border-t border-white/15 bg-white/10 p-4 sm:px-7">
@@ -46,20 +72,60 @@ export default async function ResidentPage() {
                 </span>
               </summary>
               <div className="border-t border-[var(--border)] px-5 py-2">
-                {resident.recentCredits.map((credit) => (
+                {monthlyCreditsWithBreakdown.map(({ credit, events }) => (
                   <div
                     key={credit.id}
-                    className="flex items-center justify-between gap-4 border-b border-[var(--border)] py-4 last:border-0"
+                    className="border-b border-[var(--border)] py-4 last:border-0"
                   >
-                    <div>
-                      <p className="text-sm font-semibold">{credit.label}</p>
-                      <p className="mt-1 text-xs text-[var(--muted)]">
-                        {credit.date} · Posted
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {credit.type === "contributor_reward"
+                            ? "Monthly Contributor Reward"
+                            : "Monthly Equity Dividend"}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          August settlement · Posted 1 Sep 2026
+                        </p>
+                      </div>
+                      <p className="font-mono text-sm font-semibold text-[var(--primary)]">
+                        +{formatAud(credit.amount)}
                       </p>
                     </div>
-                    <p className="font-mono text-sm font-semibold text-[var(--primary)]">
-                      +{formatAud(credit.amount)}
-                    </p>
+                    <details className="group mt-3 rounded-xl bg-[var(--surface-muted)]">
+                      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between px-4 text-xs font-semibold text-[var(--primary)]">
+                        See included events
+                        <span className="transition-transform group-open:rotate-45">
+                          +
+                        </span>
+                      </summary>
+                      <div className="border-t border-[var(--border)] px-4 py-1">
+                        {events.map((event) => (
+                          <div
+                            key={event.id}
+                            className="flex items-center justify-between gap-3 border-b border-[var(--border)] py-3 last:border-0"
+                          >
+                            <div>
+                              <p className="text-xs font-semibold">
+                                {event.label}
+                              </p>
+                              <p className="mt-1 text-xs text-[var(--muted)]">
+                                {event.date} · Verified
+                              </p>
+                            </div>
+                            <p className="font-mono text-xs font-semibold">
+                              {formatAud(event.allocatedAmount)}
+                            </p>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between border-t border-[var(--border)] py-3 text-xs font-semibold">
+                          <span>Monthly total</span>
+                          <span className="font-mono">
+                            {formatAud(credit.amount)}
+                          </span>
+                        </div>
+                      </div>
+                    </details>
                   </div>
                 ))}
               </div>
@@ -80,8 +146,8 @@ export default async function ResidentPage() {
                 {latestCredit.date} · Verified event
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 font-mono text-sm font-semibold text-emerald-800">
-              +{formatAud(latestCredit.amount)}
+            <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+              Verified
             </span>
           </div>
           <div className="mt-5 flex items-center justify-between gap-4 border-t border-[var(--border)] pt-4 text-sm">
@@ -105,7 +171,7 @@ export default async function ResidentPage() {
               <p className="mt-2">
                 Your{" "}
                 {contributor ? "verified contribution" : "equity eligibility"}{" "}
-                resulted in a {formatAud(latestCredit.amount)} credit.
+                was included in the August monthly settlement.
               </p>
             </div>
           </details>
