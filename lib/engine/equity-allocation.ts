@@ -1,6 +1,7 @@
 import { allocateCents } from "./cents";
 import {
   EQUITY_CELLS,
+  NEED_TIERS,
   computePriorityScore,
   type CapabilityClass,
   type FactorScores,
@@ -12,15 +13,13 @@ import {
  *
  * Two governance rules drive this module, both deliberate:
  *
- * 1. A household paid from the Solar Pool does NOT draw from the Equity Pool.
- *    The test is `receivesSolarPool` (enrolment), never solar ownership - a
- *    tenant with landlord-owned panels and no contributor payment keeps their
- *    equity credit.
+ * 1. Equity eligibility is independent of verified contribution. A household
+ *    may receive need-based support and a separately calculated payment for a
+ *    verified service without counting either pool twice.
  *
- * 2. The pool is not divided by one global per-point rate. It splits into
- *    twelve cell blocks by `tierWeight x capabilityWeight x claimantCount`,
- *    and only inside a cell do priority points divide the block. This protects
- *    a cohort's share against headcount swings in another cohort.
+ * 2. The pool splits into four Need Tier blocks by `tierWeight x claimantCount`.
+ *    One tier rate then pays every household in that tier by Need Score. The
+ *    twelve capability cells remain reporting views and never set money rates.
  *
  * Tiers and capability classes are recomputed here from the factor scores
  * rather than read from stored fields, so a re-scored household is always paid
@@ -31,30 +30,19 @@ export interface EquityGroupPolicy {
   version: string;
   /** Relative claim of each need tier. Must be strictly decreasing. */
   tierWeights: Record<NeedTier, number>;
-  /**
-   * Relative claim of each capability class. Flat at 1 by default: capability
-   * then changes a household's points inside its cell but never the size of
-   * the cell's block, which is the strongest reading of "need must dominate
-   * contribution". Raising a class tilts the pool toward capability and must
-   * be re-checked against the Equity Floor assertions below.
-   */
-  capabilityWeights: Record<CapabilityClass, number>;
 }
 
 export const DEFAULT_EQUITY_GROUP_POLICY: EquityGroupPolicy = {
-  version: "equity-groups-1.0.0",
+  version: "equity-groups-3.0.0",
   tierWeights: { critical: 4, high: 3, moderate: 2, standard: 1 },
-  capabilityWeights: {
-    individual_tank: 1,
-    shared_or_other: 1,
-    none: 1,
-  },
 };
 
 export interface EquityHousehold {
   id: string;
   factors: FactorScores;
-  /** True only while the household is paid from the Solar Pool this period. */
+  /** Council-approved eligibility for need-based support this period. */
+  equityEligible: boolean;
+  /** Enrolled to receive verified Contributor rewards this period. */
   receivesSolarPool: boolean;
 }
 
@@ -62,12 +50,12 @@ export interface EquityCellAllocation {
   key: string;
   tier: NeedTier;
   capability: CapabilityClass;
-  /** Members with priority points > 0. A zero-point household has no claim. */
+  /** Members with need points > 0. A zero-point household has no claim. */
   claimantCount: number;
   cellPoints: number;
   cellWeight: number;
   blockCents: number;
-  /** Block divided by the cell's points. Differs per cell - that is the point. */
+  /** Tier block divided by tier points. Identical across a tier's three cells. */
   centsPerPoint: number;
 }
 
@@ -76,7 +64,7 @@ export interface EquityCredit {
   cellKey: string;
   tier: NeedTier;
   capability: CapabilityClass;
-  priorityScore: number;
+  equityScore: number;
   amountCents: number;
 }
 
@@ -84,7 +72,7 @@ export interface EquityAllocationResult {
   policy: EquityGroupPolicy;
   equityPoolCents: number;
   eligibleCount: number;
-  excludedSolarCount: number;
+  ineligibleCount: number;
   zeroPointCount: number;
   cells: EquityCellAllocation[];
   credits: EquityCredit[];
@@ -93,13 +81,10 @@ export interface EquityAllocationResult {
 }
 
 export function assertEquityGroupPolicy(policy: EquityGroupPolicy): void {
-  const weights = [
-    ...Object.values(policy.tierWeights),
-    ...Object.values(policy.capabilityWeights),
-  ];
+  const weights = Object.values(policy.tierWeights);
   if (weights.some((weight) => !(weight > 0)))
     throw new Error(
-      "Every tier and capability weight must be positive; a weight of 0 removes a cohort from the pool rather than deprioritising it",
+      "Every tier weight must be positive; a weight of 0 removes a cohort from the pool rather than deprioritising it",
     );
   const { critical, high, moderate, standard } = policy.tierWeights;
   if (!(critical > high && high > moderate && moderate > standard))
@@ -117,66 +102,76 @@ export function allocateEquityPool(
     throw new Error("Equity pool must be a non-negative integer cent amount");
   assertEquityGroupPolicy(policy);
 
-  const excludedSolarCount = households.filter(
-    (household) => household.receivesSolarPool,
+  const ineligibleCount = households.filter(
+    (household) => !household.equityEligible,
   ).length;
 
   const scored = households
-    .filter((household) => !household.receivesSolarPool)
-    .map((household) => ({
-      id: household.id,
-      ...computePriorityScore(household.factors),
-    }));
-  const claimants = scored.filter((entry) => entry.priorityScore > 0);
+    .filter((household) => household.equityEligible)
+    .map((household) => {
+      const score = computePriorityScore(household.factors);
+      return { id: household.id, ...score, equityScore: score.needScore };
+    });
+  const claimants = scored.filter((entry) => entry.equityScore > 0);
 
-  const grouped = EQUITY_CELLS.map((cell) => {
-    const members = claimants.filter((entry) => entry.cellKey === cell.key);
+  const tierGroups = NEED_TIERS.map((tier) => {
+    const members = claimants.filter((entry) => entry.needTier === tier);
     return {
-      ...cell,
+      tier,
       members,
-      cellPoints: members.reduce((sum, entry) => sum + entry.priorityScore, 0),
-      cellWeight:
-        members.length === 0
-          ? 0
-          : policy.tierWeights[cell.tier] *
-            policy.capabilityWeights[cell.capability] *
-            members.length,
+      points: members.reduce((sum, entry) => sum + entry.equityScore, 0),
+      weight: policy.tierWeights[tier] * members.length,
     };
   });
-
-  const blocks = allocateCents(
+  const tierBlocks = allocateCents(
     equityPoolCents,
-    grouped.map((cell) => ({ id: cell.key, weight: cell.cellWeight })),
+    tierGroups.map(({ tier, weight }) => ({ id: tier, weight })),
   );
 
   const credits: EquityCredit[] = [];
-  const cells: EquityCellAllocation[] = grouped.map((cell) => {
-    const blockCents = blocks.get(cell.key) ?? 0;
+  for (const group of tierGroups) {
+    const blockCents = tierBlocks.get(group.tier) ?? 0;
     const shares = allocateCents(
       blockCents,
-      cell.members.map((entry) => ({
+      group.members.map((entry) => ({
         id: entry.id,
-        weight: entry.priorityScore,
+        weight: entry.equityScore,
       })),
     );
-    for (const entry of cell.members)
+    for (const entry of group.members)
       credits.push({
         householdId: entry.id,
-        cellKey: cell.key,
-        tier: cell.tier,
-        capability: cell.capability,
-        priorityScore: entry.priorityScore,
+        cellKey: entry.cellKey,
+        tier: entry.needTier,
+        capability: entry.capabilityClass,
+        equityScore: entry.equityScore,
         amountCents: shares.get(entry.id) ?? 0,
       });
+  }
+
+  const creditByHousehold = new Map(
+    credits.map((credit) => [credit.householdId, credit.amountCents]),
+  );
+  const cells: EquityCellAllocation[] = EQUITY_CELLS.map((cell) => {
+    const members = claimants.filter((entry) => entry.cellKey === cell.key);
+    const tier = tierGroups.find((group) => group.tier === cell.tier);
+    const tierBlockCents = tierBlocks.get(cell.tier) ?? 0;
+    const cellPoints = members.reduce(
+      (sum, entry) => sum + entry.equityScore,
+      0,
+    );
     return {
       key: cell.key,
       tier: cell.tier,
       capability: cell.capability,
-      claimantCount: cell.members.length,
-      cellPoints: cell.cellPoints,
-      cellWeight: cell.cellWeight,
-      blockCents,
-      centsPerPoint: cell.cellPoints > 0 ? blockCents / cell.cellPoints : 0,
+      claimantCount: members.length,
+      cellPoints,
+      cellWeight: policy.tierWeights[cell.tier] * members.length,
+      blockCents: members.reduce(
+        (sum, entry) => sum + (creditByHousehold.get(entry.id) ?? 0),
+        0,
+      ),
+      centsPerPoint: tier && tier.points > 0 ? tierBlockCents / tier.points : 0,
     };
   });
 
@@ -189,7 +184,7 @@ export function allocateEquityPool(
     policy,
     equityPoolCents,
     eligibleCount: scored.length,
-    excludedSolarCount,
+    ineligibleCount,
     zeroPointCount: scored.length - claimants.length,
     cells,
     credits,
@@ -236,8 +231,7 @@ export function averageCreditByTier(
   result: EquityAllocationResult,
 ): Record<NeedTier, number> {
   const totals = {} as Record<NeedTier, { cents: number; count: number }>;
-  for (const cell of EQUITY_CELLS)
-    totals[cell.tier] ??= { cents: 0, count: 0 };
+  for (const cell of EQUITY_CELLS) totals[cell.tier] ??= { cents: 0, count: 0 };
   for (const credit of result.credits) {
     totals[credit.tier].cents += credit.amountCents;
     totals[credit.tier].count += 1;

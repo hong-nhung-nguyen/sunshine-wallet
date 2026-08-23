@@ -7,9 +7,8 @@ const navItems = [
   { href: "/council", label: "Dashboard", mark: "01" },
   { href: "/council/events", label: "Events", mark: "02" },
   { href: "/council/resources", label: "Resources", mark: "03" },
-  { href: "/council/attribution", label: "Attribution", mark: "04" },
-  { href: "/council/equity-cells", label: "Equity cells", mark: "05" },
-  { href: "/council/governance", label: "Governance", mark: "06" },
+  { href: "/council/equity-cells", label: "Equity cells", mark: "04" },
+  { href: "/council/governance", label: "Governance", mark: "05" },
 ] as const;
 
 export function CouncilNav() {

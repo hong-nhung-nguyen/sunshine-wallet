@@ -51,7 +51,7 @@ describe("pool split", () => {
 });
 
 describe("the two branches", () => {
-  it("settles 1B first and removes contributors from the equity roll", () => {
+  it("keeps need-based and verified-service credits independently auditable", () => {
     const result = settled();
     const contributorIds = new Set(
       result.credits
@@ -64,7 +64,7 @@ describe("the two branches", () => {
         .map((credit) => credit.householdId),
     );
     expect(contributorIds.size).toBe(result.contributorCount);
-    for (const id of contributorIds) expect(equityIds.has(id)).toBe(false);
+    expect(equityIds.has("hh_edge_needy_contributor")).toBe(true);
   });
 
   it("pays every contributor the same flat share", () => {
@@ -76,11 +76,11 @@ describe("the two branches", () => {
     expect(Math.max(...amounts) - Math.min(...amounts)).toBeLessThanOrEqual(1);
   });
 
-  it("freezes the priority score onto each 1A credit", () => {
+  it("freezes the need-only equity score onto each 1A credit", () => {
     const equityCredit = settled().credits.find(
       (credit) => credit.branch === "1A",
     );
-    expect(equityCredit?.priorityScore).toBeGreaterThan(0);
+    expect(equityCredit?.equityScore).toBeGreaterThan(0);
     expect(equityCredit?.cellKey).toContain(":");
   });
 
@@ -91,12 +91,11 @@ describe("the two branches", () => {
     expect(credit?.branch).toBe("1A");
   });
 
-  it("pays the high-need contributor from 1B only", () => {
+  it("pays an eligible high-need contributor from both fixed pools", () => {
     const rows = settled().credits.filter(
       (c) => c.householdId === "hh_edge_needy_contributor",
     );
-    expect(rows).toHaveLength(1);
-    expect(rows[0].branch).toBe("1B");
+    expect(rows.map(({ branch }) => branch).sort()).toEqual(["1A", "1B"]);
   });
 });
 
@@ -112,7 +111,7 @@ describe("carry", () => {
 
   it("carries the equity pool when nobody is eligible", () => {
     const result = settled({
-      households: householdRoll.filter((h) => h.receivesSolarPool),
+      households: householdRoll.filter((h) => !h.equityEligible),
     });
     expect(result.equityRollCount).toBe(0);
     expect(result.carriedCents).toBe(result.equityPoolCents);
@@ -188,25 +187,6 @@ describe("Equity Floor reporting", () => {
     expect(result.floor.monotonicity.passed).toBe(true);
   });
 
-  it("reports rather than blocks when a tilted weight inverts the roll", () => {
-    // Governance refuses such an edit; a settlement still pays and shows FAIL,
-    // because withholding everyone's money is the wrong failure mode here.
-    const result = settled({
-      policy: policy({
-        groups: {
-          ...DEFAULT_GOVERNANCE_POLICY.groups,
-          capabilityWeights: {
-            individual_tank: 60,
-            shared_or_other: 1,
-            none: 1,
-          },
-        },
-      }),
-    });
-    expect(result.floor.passed).toBe(false);
-    expect(settlementClosesExactly(result)).toBe(true);
-  });
-
   it("raises the equity pool when governance votes above the floor", () => {
     const richer = settled({
       policy: policy({
@@ -215,9 +195,7 @@ describe("Equity Floor reporting", () => {
         reserveShareBps: 500,
       }),
     });
-    expect(richer.equityPoolCents).toBeGreaterThan(
-      settled().equityPoolCents,
-    );
+    expect(richer.equityPoolCents).toBeGreaterThan(settled().equityPoolCents);
     expect(settlementClosesExactly(richer)).toBe(true);
   });
 });

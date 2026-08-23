@@ -16,9 +16,9 @@ import type { NeedTier } from "./priority-scheme";
 /**
  * Monthly settlement — one pot, three pools, two branches.
  *
- * Order matters: **Layer 1B settles first**, because the contributor roll is
- * what determines who is on the equity roll. Computing both from the same
- * household list in parallel is how a household ends up paid twice.
+ * The branches compensate different things. Layer 1A uses Council-approved
+ * need eligibility; Layer 1B uses verified contribution. An eligible household
+ * may receive both from the already-fixed pools without double-counting value.
  *
  * Structural policy errors block the settlement outright. The Equity Floor
  * assertions do not — they are *reported* here and enforced at the point a
@@ -40,7 +40,7 @@ export interface GovernancePolicy {
 export const TOTAL_BASIS_POINTS = 10_000;
 
 export const DEFAULT_GOVERNANCE_POLICY: GovernancePolicy = {
-  version: "governance-1.0.0",
+  version: "governance-3.0.0",
   effectiveDate: "2026-08-01",
   equityShareBps: 6_000,
   contributorShareBps: 3_500,
@@ -64,8 +64,7 @@ export type SettlementRejectionCode =
   | "INVALID_POOL_TOTAL"
   | "EQUITY_FLOOR_VIOLATION"
   | "INVALID_VALUE_INPUT"
-  | "INVALID_GROUP_WEIGHTS"
-  | "POOL_EXCLUSIVITY_VIOLATION";
+  | "INVALID_GROUP_WEIGHTS";
 
 export interface SettlementCredit {
   householdId: string;
@@ -73,8 +72,8 @@ export interface SettlementCredit {
   amountCents: number;
   /** 1A only — the cell whose block this credit came out of. */
   cellKey?: string;
-  /** 1A only — frozen at settlement so a later re-score cannot rewrite it. */
-  priorityScore?: number;
+  /** 1A only — frozen Need Score used to divide the cell block. */
+  equityScore?: number;
 }
 
 export interface EquityFloorReport {
@@ -189,7 +188,7 @@ export function settleMonth(input: MonthlySettlementInput): MonthlySettlement {
 
   const credits: SettlementCredit[] = [];
 
-  // 2. Layer 1B FIRST — it decides who remains on the equity roll.
+  // 2. Layer 1B — verified contribution divides the Contributor Pool.
   const contributors = input.households.filter(
     (household) => household.receivesSolarPool,
   );
@@ -213,7 +212,7 @@ export function settleMonth(input: MonthlySettlementInput): MonthlySettlement {
     0,
   );
 
-  // 3. Layer 1A — twelve cells over whoever is left.
+  // 3. Layer 1A — need-only allocation over the equity-eligible roll.
   const allocation = allocateEquityPool(
     input.households,
     equityPoolCents,
@@ -225,30 +224,12 @@ export function settleMonth(input: MonthlySettlementInput): MonthlySettlement {
       branch: "1A",
       amountCents: credit.amountCents,
       cellKey: credit.cellKey,
-      priorityScore: credit.priorityScore,
+      equityScore: credit.equityScore,
     });
 
   // 4. Pool exclusivity — no household may appear on both rolls.
-  const byBranch = new Map<string, Set<string>>();
-  for (const credit of credits) {
-    const branches = byBranch.get(credit.householdId) ?? new Set<string>();
-    branches.add(credit.branch);
-    byBranch.set(credit.householdId, branches);
-  }
-  const doubled = [...byBranch.entries()]
-    .filter(([, branches]) => branches.size > 1)
-    .map(([householdId]) => householdId);
-  if (doubled.length > 0)
-    return {
-      status: "blocked",
-      policy: input.policy,
-      rejectionCodes: ["POOL_EXCLUSIVITY_VIOLATION"],
-      reasons: [
-        `${doubled.length} household(s) appear on both the 1A and 1B roll: ${doubled.slice(0, 3).join(", ")}`,
-      ],
-    };
-
-  // 5. Anything undistributable carries to the reserve rather than vanishing.
+  // Both branches may credit one household because their fixed pools compensate
+  // different things: need and a separately verified energy service.
   const carriedCents =
     allocation.undistributedCents +
     (contributorPoolCents - distributedContributorCents);

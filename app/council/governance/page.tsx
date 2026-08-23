@@ -29,11 +29,6 @@ const PRESETS = [
     query: "equity=50&contributor=45&reserve=5",
     hint: "Refused — below the Equity Floor",
   },
-  {
-    label: "Tilt capability · tank ×60",
-    query: "capTank=60",
-    hint: "Breaks the inversion assertion",
-  },
 ] as const;
 
 export default async function GovernancePage({
@@ -59,11 +54,6 @@ export default async function GovernancePage({
         high: number(params.wHigh, 3),
         moderate: number(params.wModerate, 2),
         standard: number(params.wStandard, 1),
-      },
-      capabilityWeights: {
-        individual_tank: number(params.capTank, 1),
-        shared_or_other: number(params.capShared, 1),
-        none: number(params.capNone, 1),
       },
     },
   };
@@ -171,32 +161,6 @@ export default async function GovernancePage({
                     type="number"
                     name={field.name}
                     defaultValue={[4, 3, 2, 1][index]}
-                    min={0}
-                    step={1}
-                    className="w-24 rounded-lg border border-[var(--border)] px-3 py-2 text-right font-mono"
-                  />
-                </label>
-              ))}
-            </fieldset>
-
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold">
-                Capability weights
-              </legend>
-              {[
-                { name: "capTank", label: "Individual tank" },
-                { name: "capShared", label: "Shared / other" },
-                { name: "capNone", label: "None" },
-              ].map((field) => (
-                <label
-                  key={field.name}
-                  className="flex items-center justify-between gap-4 text-sm"
-                >
-                  <span className="text-[var(--muted)]">{field.label}</span>
-                  <input
-                    type="number"
-                    name={field.name}
-                    defaultValue={1}
                     min={0}
                     step={1}
                     className="w-24 rounded-lg border border-[var(--border)] px-3 py-2 text-right font-mono"

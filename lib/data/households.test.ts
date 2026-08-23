@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { EQUITY_CELLS, computePriorityScore } from "@/lib/engine/priority-scheme";
+import {
+  EQUITY_CELLS,
+  computePriorityScore,
+} from "@/lib/engine/priority-scheme";
 import { allocateEquityPool } from "@/lib/engine/equity-allocation";
 import { householdRoll, rollSummary } from "./households";
 
@@ -13,15 +16,15 @@ describe("the Dapto East roll", () => {
     );
   });
 
-  it("splits 90 contributors from the equity-eligible remainder", () => {
-    expect(rollSummary.contributors).toBe(91); // 90 + the needy contributor
-    expect(rollSummary.equityEligible).toBe(rollSummary.total - 91);
+  it("tracks contributor enrolment independently from equity eligibility", () => {
+    expect(rollSummary.contributors).toBe(94); // 90 + four need-eligible contributors
+    expect(rollSummary.equityEligible).toBe(214);
   });
 
   it("populates every one of the twelve cells", () => {
     const occupied = new Set(
       householdRoll
-        .filter((h) => !h.receivesSolarPool)
+        .filter((h) => h.equityEligible)
         .map((h) => computePriorityScore(h.factors).cellKey),
     );
     for (const cell of EQUITY_CELLS) expect(occupied).toContain(cell.key);
@@ -36,13 +39,12 @@ describe("the Dapto East roll", () => {
     expect(credit?.tier).toBe("critical");
   });
 
-  it("pays the needy contributor from the solar pool only", () => {
+  it("keeps the needy contributor eligible for an equity credit", () => {
     const result = allocateEquityPool([...householdRoll], 261_600);
-    expect(
-      result.credits.find(
-        (c) => c.householdId === "hh_edge_needy_contributor",
-      ),
-    ).toBeUndefined();
+    const credit = result.credits.find(
+      (c) => c.householdId === "hh_edge_needy_contributor",
+    );
+    expect(credit?.amountCents).toBeGreaterThan(0);
   });
 
   it("gives the zero-point household no claim", () => {
