@@ -125,7 +125,7 @@ export default function CouncilEventsPage() {
                   value={`${Math.round(event.confidence * 100)}%`}
                 />
                 <HistoryMetric
-                  label="Equity Floor"
+                  label="Monthly Equity Pool"
                   value={`${event.equityFloorPercent}%`}
                 />
               </dl>

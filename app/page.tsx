@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { seedData } from "@/lib/data/seed";
+import { augustMonthlyLedger } from "@/lib/data/monthly-ledger";
 import { formatAud } from "@/lib/formatters";
 
 const stages = ["Identify", "Coordinate", "Verify", "Share"];
@@ -9,9 +10,10 @@ export default function HomePage() {
   const verification = seedData.verificationRecords.find(
     ({ eventId }) => eventId === "event_001",
   );
-  const settlement = seedData.settlements.find(
-    ({ eventId }) => eventId === "event_001",
-  );
+  const settlement =
+    augustMonthlyLedger.settlement.status === "settled"
+      ? augustMonthlyLedger.settlement
+      : null;
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-16 sm:py-24">
@@ -50,22 +52,24 @@ export default function HomePage() {
           </div>
         </div>
         <Card className="bg-[var(--primary)] text-white">
-          <p className="text-sm text-emerald-100">DAPTO-01 · Event preview</p>
+          <p className="text-sm text-emerald-100">
+            DAPTO-01 · August settlement
+          </p>
           <p className="mt-6 font-mono text-5xl font-semibold">
             {verification?.verifiedFlexEnergyKwh ?? 0} kWh
           </p>
           <p className="mt-2 text-emerald-100">verified flexible energy</p>
           <div className="mt-8 grid grid-cols-2 gap-4 border-t border-white/20 pt-6">
             <div>
-              <p className="text-sm text-emerald-100">Community value</p>
+              <p className="text-sm text-emerald-100">Monthly value</p>
               <p className="mt-1 font-mono text-2xl">
-                {formatAud(settlement?.totalValue ?? 0)}
+                {formatAud((settlement?.potCents ?? 0) / 100)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-emerald-100">Equity credit</p>
+              <p className="text-sm text-emerald-100">Equity Pool</p>
               <p className="mt-1 font-mono text-2xl">
-                {formatAud(settlement?.equityCredit ?? 0)}
+                {formatAud((settlement?.equityPoolCents ?? 0) / 100)}
               </p>
             </div>
           </div>

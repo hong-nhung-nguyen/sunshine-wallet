@@ -53,7 +53,7 @@ export const demoResidentPersonas = {
     householdLabel: "Solar contributor",
     location: "Dapto Sunshine Cell",
     walletBalance: 52.15,
-    pendingCredits: 8.4,
+    pendingCredits: 0,
     totalEarned: 156.7,
     headline: "Your flexible energy is helping Dapto use more local sunshine.",
     explanation:
@@ -73,7 +73,7 @@ export const demoResidentPersonas = {
       timeLabel: "12:00–2:00 pm",
       statusLabel: "Action requested",
       action: "Confirm that your EV can charge during the event window.",
-      estimatedCredit: 8.4,
+      estimatedCredit: 0,
     },
     recentCredits: [
       {
@@ -110,11 +110,11 @@ export const demoResidentPersonas = {
     householdLabel: "Apartment resident without rooftop solar",
     location: "Dapto Sunshine Cell",
     walletBalance: 28.4,
-    pendingCredits: 6.2,
+    pendingCredits: 0,
     totalEarned: 82.9,
     headline: "You share in local solar value—even without owning panels.",
     explanation:
-      "Council's equity policy reserves part of every verified event for eligible residents without practical roof access. You do not need an energy device to receive an Equity Dividend.",
+      "Council's equity policy reserves 60% of verified monthly value for eligible residents. You do not need solar or an energy device to receive an Equity Dividend.",
     participationLabel: "Community equity account",
     resource: null,
     nextEvent: {
@@ -124,7 +124,7 @@ export const demoResidentPersonas = {
       timeLabel: "12:00–2:00 pm",
       statusLabel: "Included",
       action: "No action is required. Your eligibility is already confirmed.",
-      estimatedCredit: 6.2,
+      estimatedCredit: 0,
     },
     recentCredits: [
       {

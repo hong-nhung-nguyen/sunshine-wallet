@@ -109,19 +109,12 @@ export function EventCreationForm({
               </option>
             </select>
           </label>
-          <label className="text-sm font-semibold">
-            Equity Floor (%)
-            <input
-              name="equityFloorPercent"
-              type="number"
-              min="15"
-              max="100"
-              step="1"
-              required
-              defaultValue={fixture.equityFloorPercent}
-              className="mt-2 min-h-12 w-full rounded-xl border border-[var(--border)] bg-white px-4 font-mono font-normal"
-            />
-          </label>
+          <div className="text-sm font-semibold">
+            Monthly Equity Pool
+            <p className="mt-2 flex min-h-12 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 font-mono font-normal">
+              {fixture.equityFloorPercent}% · governed monthly
+            </p>
+          </div>
           <label className="text-sm font-semibold">
             Window start
             <input

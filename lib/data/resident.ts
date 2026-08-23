@@ -5,8 +5,12 @@ import type {
 } from "@/lib/types";
 import { seedData } from "./seed";
 
-const participant = seedData.participants.find(({ id }) => id === "resident_003")!;
-const completedEvent = seedData.flexEvents.find(({ id }) => id === "event_001")!;
+const participant = seedData.participants.find(
+  ({ id }) => id === "resident_003",
+)!;
+const completedEvent = seedData.flexEvents.find(
+  ({ id }) => id === "event_001",
+)!;
 const upcomingEvent = seedData.flexEvents.find(({ id }) => id === "event_006")!;
 const completedVerification = seedData.verificationRecords.find(
   ({ eventId }) => eventId === completedEvent.id,
@@ -26,7 +30,7 @@ export const residentProfile = {
   householdLabel: "Apartment resident",
   location: "Dapto Sunshine Cell",
   walletBalance: participant.walletBalance ?? 0,
-  pendingCredits: 6.2,
+  pendingCredits: 0,
   totalEarned: seedData.walletTransactions
     .filter(({ participantId }) => participantId === participant.id)
     .reduce((sum, transaction) => sum + transaction.amount, 0),
@@ -46,7 +50,7 @@ export const residentEvents = [
     description:
       "Local solar is expected to be abundant. Community devices will shift demand into the sunny period.",
     residentAction: "Response needed",
-    estimatedCredit: 6.2,
+    estimatedCredit: 0,
     contribution: {
       resourceId: "resource_003",
       resourceLabel: "Aisha's hot-water system",
@@ -69,8 +73,7 @@ export const residentEvents = [
     location: "Dapto Sunshine Cell",
     status: "verified" satisfies EventStatus,
     statusLabel: "Verified",
-    description:
-      `The community shifted ${completedVerification.verifiedFlexEnergyKwh} kWh and the result passed Council's verification checks.`,
+    description: `The community shifted ${completedVerification.verifiedFlexEnergyKwh} kWh and the result passed Council's verification checks.`,
     residentAction: "Completed",
     estimatedCredit: residentEquityCredit.amount,
     contribution: null,
@@ -89,7 +92,7 @@ export const residentPolicy = {
   version: "SW-2026-01",
   effectiveDate: "1 August 2026",
   eligibilityLabel: "Eligible — no practical roof access",
-  equityFloorPercent: 20,
+  equityFloorPercent: 60,
   explanation:
-    "Council reserves at least 20% of verified event value for participating residents who cannot install rooftop solar.",
+    "Council reserves at least 60% of verified monthly value for eligible residents through the Equity Pool.",
 } as const;

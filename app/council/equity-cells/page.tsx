@@ -1,21 +1,19 @@
 import { Card } from "@/components/ui/card";
-import { householdRoll, rollSummary } from "@/lib/data/households";
+import { rollSummary } from "@/lib/data/households";
+import { augustMonthlyLedger } from "@/lib/data/monthly-ledger";
 import {
-  allocateEquityPool,
   averageCreditByTier,
   checkInversion,
   checkTierMonotonicity,
 } from "@/lib/engine/equity-allocation";
 import { formatAud } from "@/lib/formatters";
 
-/** 60% of a $4,360.00 modelled monthly pot. */
-const EQUITY_POOL_CENTS = 261_600;
-
 const cents = (value: number) => formatAud(value / 100);
 const rate = (value: number) => `$${(value / 100).toFixed(4)}`;
 
 export default function EquityCellsPage() {
-  const result = allocateEquityPool([...householdRoll], EQUITY_POOL_CENTS);
+  if (augustMonthlyLedger.settlement.status !== "settled") return null;
+  const result = augustMonthlyLedger.settlement.allocation;
   const inversion = checkInversion(result);
   const monotonicity = checkTierMonotonicity(result);
   const averages = averageCreditByTier(result);
@@ -60,7 +58,8 @@ export default function EquityCellsPage() {
             {cents(result.equityPoolCents)}
           </p>
           <p className="mt-2 text-xs text-[var(--muted)]">
-            60% of the modelled monthly pot
+            60% of {augustMonthlyLedger.includedEventIds.length} verified event
+            {augustMonthlyLedger.includedEventIds.length === 1 ? "" : "s"}
           </p>
         </Card>
         <Card>

@@ -1,7 +1,9 @@
 import type { EventStatus, ResourceStatus } from "@/lib/types";
 import { seedData } from "./seed";
 
-const canonicalEvent = seedData.flexEvents.find(({ id }) => id === "event_001")!;
+const canonicalEvent = seedData.flexEvents.find(
+  ({ id }) => id === "event_001",
+)!;
 const canonicalSettlement = seedData.settlements.find(
   ({ eventId }) => eventId === canonicalEvent.id,
 )!;
@@ -38,7 +40,7 @@ export const councilEvents = [
     maxPowerKw: 18,
     availableFlexEnergyKwh: 31,
     confidence: 0.86,
-    equityFloorPercent: 20,
+    equityFloorPercent: 60,
     eligibleResources: 4,
     sunshineCellId: councilCell.id,
     sunshineCellName: councilCell.name,
@@ -60,7 +62,7 @@ export const councilEvents = [
     maxPowerKw: 18,
     availableFlexEnergyKwh: 84,
     confidence: 0.87,
-    equityFloorPercent: 15,
+    equityFloorPercent: 60,
     eligibleResources: 23,
     sunshineCellId: councilCell.id,
     sunshineCellName: councilCell.name,
@@ -82,7 +84,7 @@ export const councilEvents = [
     maxPowerKw: 17,
     availableFlexEnergyKwh: 79,
     confidence: 0.83,
-    equityFloorPercent: 15,
+    equityFloorPercent: 60,
     eligibleResources: 21,
     sunshineCellId: councilCell.id,
     sunshineCellName: councilCell.name,
@@ -104,7 +106,7 @@ export const councilEvents = [
     maxPowerKw: 18,
     availableFlexEnergyKwh: 86,
     confidence: 0.89,
-    equityFloorPercent: 15,
+    equityFloorPercent: 60,
     eligibleResources: 22,
     sunshineCellId: councilCell.id,
     sunshineCellName: councilCell.name,
@@ -128,7 +130,7 @@ export const councilEventCreationFixture = {
   maxPowerKw: 18,
   availableFlexEnergyKwh: councilCell.availableFlexEnergyKwh,
   confidence: councilCell.forecastConfidence,
-  equityFloorPercent: 20,
+  equityFloorPercent: 60,
   eligibleResources: 0,
   sunshineCellId: councilCell.id,
   sunshineCellName: councilCell.name,
@@ -189,7 +191,7 @@ export const councilSettlement = {
   totalValue: canonicalSettlement.totalValue,
   contributorRewards: canonicalSettlement.contributorRewards,
   equityCredit: canonicalSettlement.equityCredit,
-  equityFloorPercent: 20,
+  equityFloorPercent: 60,
   confidence: canonicalEvent.confidence,
   status: canonicalSettlement.status,
 } as const;

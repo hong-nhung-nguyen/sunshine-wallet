@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { householdRoll } from "@/lib/data/households";
+import { verifiedMonthlyEvents } from "@/lib/data/monthly-ledger";
 import {
   DEFAULT_GOVERNANCE_POLICY,
-  settleMonth,
   validateGovernancePolicy,
   type GovernancePolicy,
 } from "@/lib/engine/monthly-settlement";
+import { runMonthlyWalletPipeline } from "@/lib/engine/monthly-wallet-pipeline";
 import { formatAud } from "@/lib/formatters";
-
-const POT_CENTS = 436_000; // $4,360.00 modelled monthly pot
 
 const money = (value: number) => formatAud(value / 100);
 
@@ -70,13 +69,15 @@ export default async function GovernancePage({
   };
 
   const validation = validateGovernancePolicy(policy);
-  const settlement = settleMonth({
+  const pipeline = runMonthlyWalletPipeline({
     period: "2026-08",
-    potCents: POT_CENTS,
+    events: verifiedMonthlyEvents,
     households: [...householdRoll],
     policy,
+    existingTransactions: [],
     createdAt: "2026-09-01T00:00:00+10:00",
   });
+  const settlement = pipeline.settlement;
 
   const accepted = validation.valid;
   const floorPassed =
@@ -243,7 +244,10 @@ export default async function GovernancePage({
             <>
               <Card>
                 <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-ink)] uppercase">
-                  Settlement preview · pot {money(settlement.potCents)}
+                  Settlement preview · {pipeline.includedEventIds.length}{" "}
+                  verified event
+                  {pipeline.includedEventIds.length === 1 ? "" : "s"} · pot{" "}
+                  {money(settlement.potCents)}
                 </p>
                 <dl className="mt-4 grid grid-cols-3 gap-4">
                   <div>
@@ -261,8 +265,7 @@ export default async function GovernancePage({
                       {money(settlement.contributorPoolCents)}
                     </dd>
                     <dd className="text-xs text-[var(--muted)]">
-                      {money(settlement.contributorShareCents)} ×{" "}
-                      {settlement.contributorCount}
+                      Weighted by verified contribution
                     </dd>
                   </div>
                   <div>
@@ -277,6 +280,18 @@ export default async function GovernancePage({
                     </dd>
                   </div>
                 </dl>
+              </Card>
+
+              <Card>
+                <p className="text-xs font-bold tracking-[0.12em] text-[var(--council-ink)] uppercase">
+                  Wallet ledger
+                </p>
+                <p className="mt-3 font-mono text-3xl font-semibold">
+                  {pipeline.postedTransactions.length}
+                </p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  retry-safe monthly credits prepared for posting
+                </p>
               </Card>
 
               <Card
