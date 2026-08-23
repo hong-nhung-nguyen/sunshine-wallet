@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AssignSwitchPanel } from "@/components/council/assign-switch-panel";
+import { EventAssignments } from "@/components/council/event-assignments";
 import { Card } from "@/components/ui/card";
 import {
   councilEventCreationFixture,
@@ -46,12 +48,20 @@ export default async function CouncilEventDetailPage({
             {event.id} · {event.dateLabel} · {event.windowLabel}
           </p>
         </div>
-        <Link
-          href="/council/attribution"
-          className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
-        >
-          Review attribution →
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <AssignSwitchPanel
+            eventId={event.id}
+            windowStart={event.windowStart}
+            windowEnd={event.windowEnd}
+            targetFlexEnergyKwh={event.targetFlexEnergyKwh}
+          />
+          <Link
+            href="/council/attribution"
+            className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
+          >
+            Review attribution →
+          </Link>
+        </div>
       </header>
       <Card className="mt-7">
         <p className="text-xs font-bold tracking-[0.12em] text-teal-700 uppercase">
@@ -199,6 +209,7 @@ export default async function CouncilEventDetailPage({
           </div>
         )}
       </Card>
+      <EventAssignments eventId={event.id} />
     </div>
   );
 }

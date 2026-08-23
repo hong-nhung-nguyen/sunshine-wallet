@@ -69,7 +69,7 @@ export default function CouncilEventsPage() {
                 href={`/council/events/${event.id}`}
                 className="inline-flex min-h-10 items-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold hover:bg-[var(--surface-muted)]"
               >
-                Open event →
+                View record →
               </Link>
             </div>
             <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-5 sm:grid-cols-4">

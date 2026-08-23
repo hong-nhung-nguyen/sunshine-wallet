@@ -92,10 +92,10 @@ export default async function GovernancePage({
           Change the split, see who it moves
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-          The community votes on the three-way split and the block weights.
-          Two rules are structural and the console refuses to apply an edit
-          that breaks either: the Equity Pool never falls below its floor, and
-          tier weights must strictly decrease so need dominates contribution.
+          The community votes on the three-way split and the block weights. Two
+          rules are structural and the console refuses to apply an edit that
+          breaks either: the Equity Pool never falls below its floor, and tier
+          weights must strictly decrease so need dominates contribution.
         </p>
       </header>
 

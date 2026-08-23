@@ -136,7 +136,9 @@ export default function EquityCellsPage() {
                   <td className="p-4 text-right font-mono">
                     {cell.cellPoints.toLocaleString()}
                   </td>
-                  <td className="p-4 text-right font-mono">{cell.cellWeight}</td>
+                  <td className="p-4 text-right font-mono">
+                    {cell.cellWeight}
+                  </td>
                   <td className="p-4 text-right font-mono">
                     {cents(cell.blockCents)}
                   </td>
