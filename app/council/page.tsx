@@ -1,13 +1,17 @@
 import Link from "next/link";
+import { AreaOverview } from "@/components/council/area-overview";
 import { DispatchConsole } from "@/components/council/dispatch-console";
 import { Card } from "@/components/ui/card";
-import { councilCell, councilEvents } from "@/lib/data/council";
+import { councilAreas, councilCell, councilEvents } from "@/lib/data/council";
 
 export default function CouncilPage() {
   const activeEvent = councilEvents[0];
   return (
     <div className="mx-auto max-w-7xl">
-      <header className="flex flex-wrap items-end justify-between gap-5">
+      <header
+        id="dapto-demo"
+        className="flex scroll-mt-6 flex-wrap items-end justify-between gap-5"
+      >
         <div>
           <p className="text-sm font-semibold text-[var(--council-accent-strong,#956000)]">
             Dispatch planner · 22 Aug 2026
@@ -35,6 +39,8 @@ export default function CouncilPage() {
           </Link>
         </div>
       </header>
+
+      <AreaOverview areas={councilAreas} />
 
       <div className="mt-6">
         <DispatchConsole />

@@ -22,6 +22,100 @@ export const councilCell = {
   roofAccessResidents: 2,
 } as const;
 
+export type CouncilAreaRisk = "high" | "medium" | "low";
+
+export type CouncilAreaSummary = {
+  id: string;
+  code: string;
+  name: string;
+  location: string;
+  risk: CouncilAreaRisk;
+  requiredFlexEnergyKwh: number;
+  availableFlexEnergyKwh: number;
+  eligibleResources: number;
+  windowLabel: string;
+  demoAvailable: boolean;
+};
+
+/**
+ * Simulated portfolio data used to demonstrate how a production council could
+ * triage multiple network areas. Only Dapto has the complete event workflow.
+ */
+export const councilAreas: CouncilAreaSummary[] = [
+  {
+    id: councilCell.id,
+    code: councilCell.code,
+    name: councilCell.name,
+    location: councilCell.location,
+    risk: councilCell.constraintRisk,
+    requiredFlexEnergyKwh: 24,
+    availableFlexEnergyKwh: councilCell.availableFlexEnergyKwh,
+    eligibleResources: 4,
+    windowLabel: councilCell.recommendedWindow,
+    demoAvailable: true,
+  },
+  {
+    id: "sunshine_cell_02",
+    code: "BERK-02",
+    name: "Berkeley Sunshine Cell",
+    location: "Berkeley",
+    risk: "high",
+    requiredFlexEnergyKwh: 40,
+    availableFlexEnergyKwh: 22,
+    eligibleResources: 7,
+    windowLabel: "1:00–3:00 pm",
+    demoAvailable: false,
+  },
+  {
+    id: "sunshine_cell_03",
+    code: "PORT-03",
+    name: "Port Kembla Sunshine Cell",
+    location: "Port Kembla",
+    risk: "high",
+    requiredFlexEnergyKwh: 36,
+    availableFlexEnergyKwh: 29,
+    eligibleResources: 9,
+    windowLabel: "12:30–2:30 pm",
+    demoAvailable: false,
+  },
+  {
+    id: "sunshine_cell_04",
+    code: "CORR-04",
+    name: "Corrimal Sunshine Cell",
+    location: "Corrimal",
+    risk: "medium",
+    requiredFlexEnergyKwh: 18,
+    availableFlexEnergyKwh: 20,
+    eligibleResources: 5,
+    windowLabel: "11:30 am–1:30 pm",
+    demoAvailable: false,
+  },
+  {
+    id: "sunshine_cell_05",
+    code: "FIGT-05",
+    name: "Figtree Sunshine Cell",
+    location: "Figtree",
+    risk: "medium",
+    requiredFlexEnergyKwh: 27,
+    availableFlexEnergyKwh: 35,
+    eligibleResources: 8,
+    windowLabel: "12:00–2:00 pm",
+    demoAvailable: false,
+  },
+  {
+    id: "sunshine_cell_06",
+    code: "THIR-06",
+    name: "Thirroul Sunshine Cell",
+    location: "Thirroul",
+    risk: "low",
+    requiredFlexEnergyKwh: 14,
+    availableFlexEnergyKwh: 23,
+    eligibleResources: 6,
+    windowLabel: "1:30–3:30 pm",
+    demoAvailable: false,
+  },
+];
+
 export const councilPolicy = {
   version: "SW-2026-01",
   effectiveDate: "1 August 2026",
