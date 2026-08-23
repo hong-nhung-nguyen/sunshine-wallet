@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ResidentEventFlow } from "@/components/resident/resident-event-flow";
 import { Card } from "@/components/ui/card";
 import { residentEvents } from "@/lib/data/resident";
-import { formatAud } from "@/lib/formatters";
 
 export function generateStaticParams() {
   return residentEvents.map((event) => ({ eventId: event.id }));
@@ -50,9 +49,8 @@ export default async function ResidentEventDetailPage({
             Your community benefit is complete
           </h2>
           <p className="mt-3 text-sm text-[var(--muted)]">
-            Council verified the event result and posted{" "}
-            {formatAud(event.estimatedCredit)} to your wallet as an Equity
-            Dividend.
+            Council verified the event result. Its value is included in the
+            monthly settlement before any Equity Dividend is posted.
           </p>
         </Card>
       )}

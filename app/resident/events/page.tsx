@@ -1,6 +1,5 @@
 import { Card } from "@/components/ui/card";
 import { getDemoResident } from "@/lib/demo-session";
-import { formatAud } from "@/lib/formatters";
 
 export default async function EventsPage() {
   const resident = await getDemoResident();
@@ -46,17 +45,14 @@ export default async function EventsPage() {
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-[var(--muted)]">Estimated reward</dt>
-              <dd className="mt-1 font-mono text-sm font-semibold">
-                {formatAud(resident.nextEvent.estimatedCredit)}
-              </dd>
+              <dt className="text-xs text-[var(--muted)]">Settlement</dt>
+              <dd className="mt-1 text-sm font-semibold">Monthly</dd>
             </div>
           </dl>
         ) : (
           <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900">
-            <b>Eligibility confirmed.</b> Estimated Equity Dividend:{" "}
-            {formatAud(resident.nextEvent.estimatedCredit)} after the event
-            passes verification.
+            <b>Eligibility confirmed.</b> This event contributes to the monthly
+            Equity Dividend after verification.
           </div>
         )}
       </Card>

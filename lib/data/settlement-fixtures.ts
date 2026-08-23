@@ -6,10 +6,10 @@ import type {
 export const settlementPolicy: SettlementPolicy = {
   version: "SW-2026-01",
   effectiveDate: "1 August 2026",
-  equityFloorBps: 2000,
-  equityShareBps: 3000,
-  contributorShareBps: 7000,
-  reserveShareBps: 0,
+  equityFloorBps: 6000,
+  equityShareBps: 6000,
+  contributorShareBps: 3500,
+  reserveShareBps: 500,
 };
 
 export const settlementInput: SettlementInput = {
