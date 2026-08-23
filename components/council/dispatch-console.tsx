@@ -183,7 +183,7 @@ export function DispatchConsole() {
         <div className="flex flex-wrap items-center gap-3">
           {counts.waiting > 0 && (
             <Link
-              href="/retailer"
+              href="/council/requests"
               className="font-semibold text-teal-800 hover:underline"
             >
               {counts.waiting} awaiting retailer →

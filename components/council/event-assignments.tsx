@@ -33,7 +33,7 @@ export function EventAssignments({ eventId }: Readonly<{ eventId: string }>) {
         </div>
         {waiting > 0 && (
           <Link
-            href="/retailer"
+            href="/council/requests"
             className="text-sm font-semibold text-teal-800"
           >
             {waiting} awaiting retailer →

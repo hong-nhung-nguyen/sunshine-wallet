@@ -107,7 +107,7 @@ export default function CouncilPage() {
             </span>
           </div>
           <div
-            className="mt-8 flex h-36 items-end gap-3"
+            className="mt-8 flex h-36 items-stretch gap-3"
             aria-label="Simulated solar export forecast from 9 am to 4 pm"
           >
             {[28, 45, 68, 92, 100, 84, 57, 32].map((height, index) => (
@@ -115,10 +115,13 @@ export default function CouncilPage() {
                 key={index}
                 className="flex flex-1 flex-col items-center gap-2"
               >
-                <div
-                  className={`w-full rounded-t-md ${index >= 3 && index <= 4 ? "bg-[var(--council-accent)]" : "bg-teal-700/25"}`}
-                  style={{ height: `${height}%` }}
-                />
+                {/* A percentage height needs a parent with a definite one. */}
+                <div className="flex w-full flex-1 items-end">
+                  <div
+                    className={`w-full rounded-t-md ${index >= 3 && index <= 4 ? "bg-[var(--council-accent)]" : "bg-teal-700/25"}`}
+                    style={{ height: `${height}%` }}
+                  />
+                </div>
                 <span className="text-[10px] text-[var(--muted)]">
                   {index + 9}
                 </span>

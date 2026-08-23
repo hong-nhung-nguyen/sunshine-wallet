@@ -216,10 +216,10 @@ export function AssignSwitchPanel({
                 </div>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link
-                    href="/retailer"
+                    href="/council/requests"
                     className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
                   >
-                    Open retailer inbox →
+                    Track requests →
                   </Link>
                   <Link
                     href="/council"
