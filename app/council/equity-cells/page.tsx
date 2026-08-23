@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { rollSummary } from "@/lib/data/households";
 import { augustMonthlyLedger } from "@/lib/data/monthly-ledger";
@@ -112,13 +113,16 @@ export default function EquityCellsPage() {
                 <th className="p-4 text-right font-semibold">Block</th>
                 <th className="p-4 text-right font-semibold">Block %</th>
                 <th className="p-4 text-right font-semibold">Rate / point</th>
+                <th className="p-4 text-right font-semibold">
+                  <span className="sr-only">Group details</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {result.cells.map((cell) => (
                 <tr
                   key={cell.key}
-                  className="border-t border-[var(--border)] last:border-b-0"
+                  className="group border-t border-[var(--border)] transition-colors last:border-b-0 focus-within:bg-[var(--surface-muted)] hover:bg-[var(--surface-muted)]"
                 >
                   <td className="p-4">
                     <span className="font-semibold capitalize">
@@ -148,6 +152,18 @@ export default function EquityCellsPage() {
                   </td>
                   <td className="p-4 text-right font-mono font-semibold">
                     {rate(cell.centsPerPoint)}
+                  </td>
+                  <td className="p-4 text-right">
+                    <Link
+                      href={`/council/equity-cells/${cell.tier}/${cell.capability}`}
+                      className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[var(--council-ink)] transition-colors outline-none group-hover:bg-white focus-visible:ring-2 focus-visible:ring-[var(--council-accent)] focus-visible:ring-offset-2"
+                      aria-label={`View ${cell.tier}, ${cell.capability.replace(/_/g, " ")} household details`}
+                    >
+                      View group{" "}
+                      <span aria-hidden="true" className="ml-2">
+                        →
+                      </span>
+                    </Link>
                   </td>
                 </tr>
               ))}

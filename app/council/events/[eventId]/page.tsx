@@ -52,10 +52,10 @@ export default async function CouncilEventDetailPage({
             See how it worked →
           </Link>
           <Link
-            href="/council/attribution"
+            href="/council/settlement"
             className="inline-flex min-h-11 items-center rounded-full bg-[var(--council-ink)] px-5 text-sm font-semibold text-white"
           >
-            Review attribution →
+            Review settlement →
           </Link>
         </div>
       </header>
