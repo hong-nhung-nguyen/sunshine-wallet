@@ -1,14 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
-import {
-  DISPATCH_DATE_LABEL,
-  findSite,
-  formatClock,
-  formatDuration,
-} from "@/lib/data/dispatch";
+import { findSite, formatClock, formatDuration } from "@/lib/data/dispatch";
 import { approve, decline, useAssignments } from "@/lib/dispatch/store";
 import { describeNote, refusalLabels, statusLabels } from "@/lib/dispatch/view";
 import { statusStyles } from "@/components/council/dispatch-style";
@@ -24,6 +18,9 @@ export function RetailerInbox() {
   const assignments = useAssignments();
   const [party, setParty] = useState<string>("all");
   const [declining, setDeclining] = useState<string | null>(null);
+  // Sections are open by default: these are items awaiting action, so
+  // hiding them behind a closed dropdown would bury the work.
+  const [collapsed, setCollapsed] = useState<string[]>([]);
 
   const rows = useMemo(
     () =>
@@ -46,31 +43,31 @@ export function RetailerInbox() {
   const pending = visible.filter((row) => row.assignment.status === "waiting");
   const decided = visible.filter((row) => row.assignment.status !== "waiting");
 
+  /**
+   * A retailer thinks in customers, not assignment ids. Requests are grouped
+   * under the company that has to act, with the devices behind a dropdown.
+   */
+  const pendingByCompany = useMemo(() => {
+    const byName = new Map<string, typeof pending>();
+    for (const row of pending) {
+      const list = byName.get(row.site.partyName) ?? [];
+      list.push(row);
+      byName.set(row.site.partyName, list);
+    }
+    return [...byName.entries()]
+      .map(([name, requests]) => ({ name, requests }))
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [pending]);
+
   return (
-    <div className="mx-auto max-w-4xl">
-      <header className="flex flex-wrap items-end justify-between gap-5">
-        <div>
-          <p className="text-sm font-semibold text-[var(--primary)]">
-            Partner console · {DISPATCH_DATE_LABEL}
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Switch requests
-          </h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Council has asked to move these loads into the surplus window.
-            Approving schedules the switch; refusing returns a reason.
-          </p>
-        </div>
-        <Link
-          href="/council"
-          className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] px-5 text-sm font-semibold hover:bg-white"
-        >
-          Council overview →
-        </Link>
-      </header>
+    <div>
+      <p className="text-sm text-[var(--muted)]">
+        Council has asked to move these loads into the surplus window. Approving
+        schedules the switch; refusing returns a reason.
+      </p>
 
       <div
-        className="mt-6 flex flex-wrap gap-2"
+        className="mt-5 flex flex-wrap gap-2"
         role="group"
         aria-label="Filter by party"
       >
@@ -99,99 +96,172 @@ export function RetailerInbox() {
         </Card>
       ) : (
         <ul className="mt-3 space-y-3">
-          {pending.map(({ assignment, site }) => (
-            <li key={assignment.id}>
-              <Card className="border-l-4 border-l-[var(--accent)]">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-lg font-semibold">{site.name}</p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      {site.deviceType} · {site.partyName} · {site.address}
-                    </p>
-                  </div>
-                  <span className="font-mono text-xs text-[var(--muted)]">
-                    {assignment.id} · {assignment.eventId}
-                  </span>
-                </div>
-                <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4 sm:grid-cols-4">
-                  <div>
-                    <dt className="text-xs text-[var(--muted)]">Window</dt>
-                    <dd className="mt-1 font-mono text-sm font-semibold">
-                      {formatClock(assignment.plannedStart)} –{" "}
-                      {formatClock(assignment.plannedEnd)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-[var(--muted)]">Duration</dt>
-                    <dd className="mt-1 font-mono text-sm font-semibold">
-                      {formatDuration(
-                        assignment.plannedEnd - assignment.plannedStart,
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-[var(--muted)]">Energy</dt>
-                    <dd className="mt-1 font-mono text-sm font-semibold">
-                      {assignment.energyKwh} kWh
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-[var(--muted)]">Max power</dt>
-                    <dd className="mt-1 font-mono text-sm font-semibold">
-                      {site.powerKw} kW
-                    </dd>
-                  </div>
-                </dl>
-
-                {declining === assignment.id ? (
-                  <div className="mt-4 rounded-2xl bg-[var(--surface-muted)] p-4">
-                    <p className="text-sm font-semibold">
-                      Why can this switch not run?
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {declineReasons.map((reason) => (
-                        <button
-                          key={reason}
-                          type="button"
-                          onClick={() => {
-                            decline(assignment.id, reason);
-                            setDeclining(null);
-                          }}
-                          className="min-h-10 cursor-pointer rounded-full border border-[var(--border)] bg-white px-4 text-sm font-semibold hover:bg-rose-50"
-                        >
-                          {refusalLabels[reason]}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setDeclining(null)}
-                        className="min-h-10 cursor-pointer px-3 text-sm font-semibold text-[var(--muted)]"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-4 flex flex-wrap gap-2">
+          {pendingByCompany.map(({ name, requests }) => {
+            const isOpen = !collapsed.includes(name);
+            const totalKwh = requests.reduce(
+              (sum, row) => sum + row.assignment.energyKwh,
+              0,
+            );
+            const panelId = `requests-${name.replace(/\s+/g, "-")}`;
+            return (
+              <li key={name}>
+                <Card className="border-l-4 border-l-[var(--accent)] p-0">
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                     <button
                       type="button"
-                      onClick={() => approve(assignment.id)}
+                      onClick={() =>
+                        setCollapsed((current) =>
+                          isOpen
+                            ? [...current, name]
+                            : current.filter((item) => item !== name),
+                        )
+                      }
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`shrink-0 text-lg text-[var(--muted)] transition-transform ${isOpen ? "rotate-90" : ""}`}
+                      >
+                        &rsaquo;
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-lg font-semibold">
+                          {name}
+                        </span>
+                        <span className="mt-1 block text-sm text-[var(--muted)]">
+                          {requests.length} switch
+                          {requests.length === 1 ? "" : "es"} awaiting ·{" "}
+                          {totalKwh.toFixed(1)} kWh
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        for (const row of requests) approve(row.assignment.id);
+                      }}
                       className="min-h-11 cursor-pointer rounded-full bg-[var(--primary)] px-5 text-sm font-semibold text-white hover:bg-[var(--primary-strong)]"
                     >
-                      Approve switch
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeclining(assignment.id)}
-                      className="min-h-11 cursor-pointer rounded-full border border-[var(--border)] px-5 text-sm font-semibold hover:bg-[var(--surface-muted)]"
-                    >
-                      Decline
+                      Approve all {requests.length}
                     </button>
                   </div>
-                )}
-              </Card>
-            </li>
-          ))}
+
+                  {isOpen && (
+                    <ul
+                      id={panelId}
+                      className="space-y-3 border-t border-[var(--border)] bg-[var(--surface-muted)]/50 p-4"
+                    >
+                      {requests.map(({ assignment, site }) => (
+                        <li
+                          key={assignment.id}
+                          className="rounded-2xl border border-[var(--border)] bg-white p-4"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-semibold">{site.name}</p>
+                              <p className="mt-1 text-sm text-[var(--muted)]">
+                                {site.deviceType} · {site.address}
+                              </p>
+                            </div>
+                            <span className="font-mono text-xs text-[var(--muted)]">
+                              {assignment.id}
+                            </span>
+                          </div>
+                          <dl className="mt-3 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-3 sm:grid-cols-4">
+                            <div>
+                              <dt className="text-xs text-[var(--muted)]">
+                                Window
+                              </dt>
+                              <dd className="mt-1 font-mono text-sm font-semibold">
+                                {formatClock(assignment.plannedStart)} –{" "}
+                                {formatClock(assignment.plannedEnd)}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-xs text-[var(--muted)]">
+                                Duration
+                              </dt>
+                              <dd className="mt-1 font-mono text-sm font-semibold">
+                                {formatDuration(
+                                  assignment.plannedEnd -
+                                    assignment.plannedStart,
+                                )}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-xs text-[var(--muted)]">
+                                Energy
+                              </dt>
+                              <dd className="mt-1 font-mono text-sm font-semibold">
+                                {assignment.energyKwh} kWh
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-xs text-[var(--muted)]">
+                                Max power
+                              </dt>
+                              <dd className="mt-1 font-mono text-sm font-semibold">
+                                {site.powerKw} kW
+                              </dd>
+                            </div>
+                          </dl>
+
+                          {declining === assignment.id ? (
+                            <div className="mt-3 rounded-2xl bg-[var(--surface-muted)] p-4">
+                              <p className="text-sm font-semibold">
+                                Why can this switch not run?
+                              </p>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {declineReasons.map((reason) => (
+                                  <button
+                                    key={reason}
+                                    type="button"
+                                    onClick={() => {
+                                      decline(assignment.id, reason);
+                                      setDeclining(null);
+                                    }}
+                                    className="min-h-10 cursor-pointer rounded-full border border-[var(--border)] bg-white px-4 text-sm font-semibold hover:bg-rose-50"
+                                  >
+                                    {refusalLabels[reason]}
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => setDeclining(null)}
+                                  className="min-h-10 cursor-pointer px-3 text-sm font-semibold text-[var(--muted)]"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => approve(assignment.id)}
+                                className="min-h-11 cursor-pointer rounded-full bg-[var(--primary)] px-4 text-sm font-semibold text-white hover:bg-[var(--primary-strong)]"
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeclining(assignment.id)}
+                                className="min-h-11 cursor-pointer rounded-full border border-[var(--border)] px-4 text-sm font-semibold hover:bg-rose-50"
+                              >
+                                ✕ Not approved
+                              </button>
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -251,11 +321,6 @@ export function RetailerInbox() {
           </tbody>
         </table>
       </Card>
-
-      <p className="mt-6 text-xs leading-5 text-[var(--muted)]">
-        Demonstration only. This console stands in for a partner retailer&apos;s
-        own systems; no request here reaches a real retailer, meter or customer.
-      </p>
     </div>
   );
 }
