@@ -23,12 +23,15 @@ interface DispatchMapProps {
   activeId: string | null;
   onActivate: (id: string | null) => void;
   onSelect: (id: string) => void;
+  /** Fires when a zone is pinned or cleared, so the caller can filter. */
+  onSelectArea?: (areaId: string | null) => void;
 }
 
 /**
- * A stylised schematic of the Dapto Sunshine Cell. The outlines are drawn for
- * orientation only: suburb shapes are illustrative and prove nothing about
- * electrical topology. Hovering a pin shows what is switching, where and when.
+ * The Dapto Sunshine Cell over real suburb boundaries (OpenStreetMap, ODbL).
+ * The shapes are genuine, but they still prove nothing about electrical
+ * topology - a suburb is not a feeder. Hovering a pin shows what is switching;
+ * hovering a zone previews it, and clicking one pins its details open.
  */
 export function DispatchMap({
   rows,
@@ -36,8 +39,12 @@ export function DispatchMap({
   activeId,
   onActivate,
   onSelect,
+  onSelectArea,
 }: DispatchMapProps) {
-  const [activeArea, setActiveArea] = useState<string | null>(null);
+  const [hoverArea, setHoverArea] = useState<string | null>(null);
+  const [pinnedArea, setPinnedArea] = useState<string | null>(null);
+  // A pinned zone wins over whatever the cursor is currently over.
+  const activeArea = pinnedArea ?? hoverArea;
   const activeRow = rows.find((row) => row.assignment.id === activeId) ?? null;
   const areaRow = activeArea
     ? (dispatchAreas.find((area) => area.id === activeArea) ?? null)
@@ -125,11 +132,28 @@ export function DispatchMap({
           return (
             <g
               key={area.id}
-              onMouseEnter={() => setActiveArea(area.id)}
-              onMouseLeave={() => setActiveArea(null)}
+              onMouseEnter={() => setHoverArea(area.id)}
+              onMouseLeave={() => setHoverArea(null)}
+              onClick={() => {
+                const next = pinnedArea === area.id ? null : area.id;
+                setPinnedArea(next);
+                onSelectArea?.(next);
+              }}
+              className="cursor-pointer"
             >
-              <polygon
-                points={area.points}
+              <path
+                d={area.path}
+                role="button"
+                tabIndex={0}
+                aria-label={`${area.name}, ${switching} switching now`}
+                aria-pressed={pinnedArea === area.id}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  const next = pinnedArea === area.id ? null : area.id;
+                  setPinnedArea(next);
+                  onSelectArea?.(next);
+                }}
                 className={
                   highlighted
                     ? "fill-[#0f766e]/12 stroke-[#0f766e]"
@@ -137,8 +161,8 @@ export function DispatchMap({
                       ? "fill-[#f2b84b]/14 stroke-[#d9a441]"
                       : "fill-[#112f35]/4 stroke-[#b8c6bd]"
                 }
-                strokeWidth={highlighted ? 2.5 : 1.5}
-                strokeDasharray="7 6"
+                strokeWidth={pinnedArea === area.id ? 3.5 : highlighted ? 2.5 : 1.5}
+                strokeDasharray={pinnedArea === area.id ? undefined : "7 6"}
               />
               <text
                 x={area.labelX}
@@ -228,19 +252,52 @@ export function DispatchMap({
       </svg>
 
       {activeRow && <PinTooltip row={activeRow} now={now} />}
-      {!activeRow && areaRow && areaRows.length > 0 && (
+      {!activeRow && areaRow && (
         <div
-          className="pointer-events-none absolute w-56 -translate-x-1/2 -translate-y-full rounded-xl bg-[#112f35] p-3 text-white shadow-xl"
+          className={`absolute w-64 -translate-x-1/2 -translate-y-full rounded-xl bg-[#112f35] p-3 text-white shadow-xl ${pinnedArea ? "" : "pointer-events-none"}`}
           style={{
             left: `${(areaRow.labelX / VIEW_W) * 100}%`,
             top: `${(areaRow.labelY / VIEW_H) * 100}%`,
           }}
         >
-          <p className="text-sm font-semibold">{areaRow.name}</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold">{areaRow.name}</p>
+            {pinnedArea && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPinnedArea(null);
+                  onSelectArea?.(null);
+                }}
+                aria-label={`Close ${areaRow.name} details`}
+                className="-mt-1 -mr-1 rounded px-1.5 text-slate-300 hover:text-white"
+              >
+                ×
+              </button>
+            )}
+          </div>
           <p className="mt-1 text-xs text-slate-300">
             {areaRows.filter((row) => row.switching).length} switching now ·{" "}
             {areaRows.length} assigned
           </p>
+          {pinnedArea && (
+            <ul className="mt-2 space-y-1 border-t border-white/15 pt-2 text-xs">
+              {areaRows.length === 0 && (
+                <li className="text-slate-400">Nothing assigned here today</li>
+              )}
+              {areaRows.slice(0, 4).map((row) => (
+                <li key={row.assignment.id} className="flex justify-between gap-2">
+                  <span className="truncate text-slate-200">{row.site.name}</span>
+                  <span className="shrink-0 text-slate-400">
+                    {statusLabels[row.assignment.status]}
+                  </span>
+                </li>
+              ))}
+              {areaRows.length > 4 && (
+                <li className="text-slate-400">+{areaRows.length - 4} more</li>
+              )}
+            </ul>
+          )}
         </div>
       )}
 
@@ -260,7 +317,7 @@ export function DispatchMap({
         </span>
       </div>
       <p className="pointer-events-none absolute top-3 right-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[var(--muted)] shadow-sm">
-        Schematic · not a GIS layer
+        Suburb boundaries · OpenStreetMap
       </p>
     </div>
   );

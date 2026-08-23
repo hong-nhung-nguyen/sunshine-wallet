@@ -7,15 +7,18 @@
  * suburb outlines carry no claim about electrical topology.
  */
 
+import { suburbBoundaries } from "./geo/dapto-suburbs";
+
 export type DispatchStatus = "waiting" | "ongoing" | "completed" | "cancelled";
 
 export type SwitchParty = "retailer" | "battery_owner";
 
-/** A stylised suburb outline in the map's 1000x620 coordinate space. */
+/** A real suburb outline, projected into the map's 1000x620 space. */
 export interface DispatchArea {
   id: string;
   name: string;
-  points: string;
+  /** SVG path data, not a polygon point list. */
+  path: string;
   labelX: number;
   labelY: number;
 }
@@ -58,44 +61,23 @@ export const DISPATCH_DAY_END = 16 * 60;
 export const DISPATCH_DEFAULT_NOW = 13 * 60 + 20;
 export const DISPATCH_DATE_LABEL = "22 Aug 2026";
 
-export const dispatchAreas: readonly DispatchArea[] = [
-  {
-    id: "area_north",
-    name: "Dapto North",
-    points: "160,55 430,42 468,188 198,205",
-    labelX: 232,
-    labelY: 92,
-  },
-  {
-    id: "area_central",
-    name: "Dapto Central",
-    points: "198,205 468,188 505,338 235,360",
-    labelX: 250,
-    labelY: 242,
-  },
-  {
-    id: "area_east",
-    name: "Dapto East",
-    points: "492,182 748,166 790,320 520,340",
-    labelX: 560,
-    labelY: 213,
-  },
-  {
-    id: "area_kanahooka",
-    name: "Kanahooka",
-    points: "235,360 520,340 566,520 265,545",
-    labelX: 300,
-    labelY: 400,
-  },
-];
+export const dispatchAreas: readonly DispatchArea[] = suburbBoundaries.map(
+  (suburb) => ({
+    id: suburb.id,
+    name: suburb.name,
+    path: suburb.path,
+    labelX: suburb.labelX,
+    labelY: suburb.labelY,
+  }),
+);
 
 /** Council depot — the "homebase" row at the top of the activity log. */
 export const dispatchHomebase = {
   name: "Dapto Sunshine Cell",
   address: "Council depot, Bong Bong Road, Dapto",
-  areaId: "area_central",
-  x: 318,
-  y: 232,
+  areaId: "area_dapto",
+  x: 520.2,
+  y: 318.1,
 } as const;
 
 export const dispatchSites: readonly DispatchSite[] = [
@@ -105,10 +87,10 @@ export const dispatchSites: readonly DispatchSite[] = [
     deviceType: "Hot water",
     party: "retailer",
     partyName: "Acme Energy",
-    areaId: "area_central",
+    areaId: "area_dapto",
     address: "14 Bong Bong Road, Dapto",
-    x: 352,
-    y: 272,
+    x: 506.6,
+    y: 378.9,
     capacityKwh: 5.2,
     powerKw: 3.6,
   },
@@ -118,10 +100,10 @@ export const dispatchSites: readonly DispatchSite[] = [
     deviceType: "EV charging",
     party: "retailer",
     partyName: "Illawarra Power",
-    areaId: "area_east",
+    areaId: "area_kanahooka",
     address: "41 Fowlers Road, Dapto",
-    x: 622,
-    y: 252,
+    x: 710.8,
+    y: 195.1,
     capacityKwh: 14.4,
     powerKw: 7.2,
   },
@@ -131,10 +113,10 @@ export const dispatchSites: readonly DispatchSite[] = [
     deviceType: "Hot water",
     party: "retailer",
     partyName: "Acme Energy",
-    areaId: "area_kanahooka",
+    areaId: "area_koonawarra",
     address: "9 Byamee Street, Kanahooka",
-    x: 372,
-    y: 448,
+    x: 619.6,
+    y: 377.3,
     capacityKwh: 7.2,
     powerKw: 3.6,
   },
@@ -144,10 +126,10 @@ export const dispatchSites: readonly DispatchSite[] = [
     deviceType: "Battery",
     party: "battery_owner",
     partyName: "Noah Williams",
-    areaId: "area_east",
+    areaId: "area_kanahooka",
     address: "41 Fowlers Road, Dapto",
-    x: 688,
-    y: 296,
+    x: 760.8,
+    y: 165.3,
     capacityKwh: 10,
     powerKw: 5,
   },
@@ -157,10 +139,10 @@ export const dispatchSites: readonly DispatchSite[] = [
     deviceType: "Battery",
     party: "battery_owner",
     partyName: "Dapto Community Energy",
-    areaId: "area_north",
+    areaId: "area_horsley",
     address: "2 Marshall Street, Dapto",
-    x: 300,
-    y: 128,
+    x: 350.6,
+    y: 203.0,
     capacityKwh: 22,
     powerKw: 11,
   },
@@ -170,10 +152,10 @@ export const dispatchSites: readonly DispatchSite[] = [
     deviceType: "Hot water",
     party: "retailer",
     partyName: "Coastline Electric",
-    areaId: "area_kanahooka",
+    areaId: "area_koonawarra",
     address: "77 Prince Edward Drive, Kanahooka",
-    x: 476,
-    y: 466,
+    x: 619.6,
+    y: 325.9,
     capacityKwh: 9.6,
     powerKw: 4.8,
   },

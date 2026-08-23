@@ -28,11 +28,21 @@ export function DispatchConsole() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [logOpen, setLogOpen] = useState(true);
+  const [areaId, setAreaId] = useState<string | null>(null);
 
   const rows = useMemo(() => buildRows(assignments, now), [assignments, now]);
   const counts = useMemo(() => countByStatus(rows), [rows]);
   const totals = useMemo(() => totalise(rows, now), [rows, now]);
-  const visible = useMemo(() => filterRows(rows, filter), [rows, filter]);
+  const visible = useMemo(() => {
+    const byStatus = filterRows(rows, filter);
+    // A pinned map zone narrows every panel, not just the map.
+    return areaId
+      ? byStatus.filter((row) => row.area.id === areaId)
+      : byStatus;
+  }, [rows, filter, areaId]);
+  const areaName = areaId
+    ? (rows.find((row) => row.area.id === areaId)?.area.name ?? null)
+    : null;
   const activeId = hoveredId ?? selectedId;
   const completePercent = rows.length
     ? Math.round((counts.completed / rows.length) * 100)
@@ -71,6 +81,19 @@ export function DispatchConsole() {
               </button>
             );
           })}
+          {areaName && (
+            <button
+              type="button"
+              onClick={() => setAreaId(null)}
+              aria-label={`Clear the ${areaName} filter`}
+              className="ml-1 inline-flex min-h-11 cursor-pointer items-center gap-2 self-center rounded-full bg-[var(--council-ink)] px-3 text-xs font-semibold text-white"
+            >
+              {areaName}
+              <span aria-hidden="true" className="text-slate-300">
+                ×
+              </span>
+            </button>
+          )}
         </div>
 
         <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 self-center pr-1">
@@ -139,6 +162,7 @@ export function DispatchConsole() {
             onSelect={(id) =>
               setSelectedId((current) => (current === id ? null : id))
             }
+            onSelectArea={setAreaId}
           />
         </div>
       </div>
