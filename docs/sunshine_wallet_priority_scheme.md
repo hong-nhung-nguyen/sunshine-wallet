@@ -1,5 +1,36 @@
 # Sunshine Wallet — Value Split & Priority Scheme
 
+## Current settlement policy — need and verified service are independent
+
+This section supersedes older examples below that exclude contributors from
+the Equity Pool or use Factor E to divide an Equity block.
+
+The current Council-approved prototype rule is:
+
+```text
+Equity credit basis       = Need Score (Factors A-D only)
+Contributor reward basis = verified attributed energy
+Total monthly credit      = Equity credit + Contributor reward
+```
+
+- `equityEligible` is an explicit Council-approved need/access decision.
+- Factor E describes physical capability for operational classification; owning
+  equipment does not increase hardship support.
+- An eligible household does not lose its Equity credit because its device was
+  dispatched or because it earned a Contributor reward.
+- Contributor rewards require verification and are proportional to aggregated
+  verified contribution weight for the settlement month.
+- The 60% Equity, 35% Contributor and 5% Reserve pools are fixed before
+  household allocation, so receiving both credits does not count either pool
+  twice.
+- The same verified energy cannot be attributed twice, and wallet posting is
+  idempotent per household, month and credit type.
+
+The twelve cells remain useful for policy reporting (`need tier × capability`),
+but money is divided through four Need Tier rates. Council and
+resident interfaces must show Equity credit, Contributor reward and the monthly
+total as separate values.
+
 > Hackathon implementation specification derived from the **Sunshine Wallet · Energy Equity Challenge — Value Split & Priority Scheme** document.
 
 ---
@@ -29,7 +60,7 @@ The purpose of the scheme is to make sure households facing energy disadvantage 
 | Pool | Share | Purpose |
 |---|---:|---|
 | Equity Pool | 60% | Distributed to participating households **who do not draw from the Solar Pool**, by priority cell then by priority score (§12) |
-| Solar Pool | 35% | Distributed equally among enrolled solar owners, who are excluded from the Equity Pool |
+| Contributor Pool | 35% | Distributed by verified attributed energy; does not cancel an approved Equity entitlement |
 | Community Reserve | 5% | Supports low-yield months, crisis top-ups, trial credits, and community projects |
 
 ### Structural rule
@@ -310,17 +341,15 @@ priorityScore = 100
 
 # 12. Equity Pool Credit
 
-The Equity Pool is **not** divided by a single global per-point rate, and it is **not** paid to households that draw from the Solar Pool.
+The Equity Pool is **not** divided by a single global per-point rate. It is paid to every household with an approved need/access entitlement, independently of Contributor rewards.
 
-## 12.1 Eligibility — one pool per household
+## 12.1 Eligibility — independent need-based entitlement
 
 ```ts
-equityEligible = !household.receivesSolarPool;
+equityEligible = household.equityEligible;
 ```
 
-Solar *ownership* is not the test — **receiving a Solar Pool payment** is. A tenant in social or community housing with landlord-owned panels and no contributor enrolment is not compensated as a producer, so they keep their equity credit. This resolves the perception issue recorded in §28: producer compensation and hardship support never stack on the same household.
-
-Removing contributors shrinks the divisor, which **raises** the value of every remaining household's points. The council UI should show this as a visible consequence, not bury it.
+Council approval of need/access eligibility is the test. Device ownership, enrolment and dispatch do not remove that entitlement.
 
 ## 12.2 Groups — the twelve priority cells
 
@@ -337,9 +366,9 @@ Capability class maps from Factor E:
 
 > Factor E has four levels but the matrix has three columns. `Other controllable load` (4 points) shares the middle class with the shared tank. Their points still differ *inside* the cell, so the fold changes grouping only — it never alters a score.
 
-## 12.3 Block share — tier weight × headcount
+## 12.3 Tier block share — tier weight × headcount
 
-Each cell takes a block of the pool proportional to its weight. The block is recomputed at every settlement, so it tracks the roll as it changes.
+Each Need Tier takes a block of the pool proportional to its weight and claimant count. Capability cells do not receive independent financial blocks.
 
 ```ts
 tierWeight = {
@@ -349,54 +378,47 @@ tierWeight = {
   standard: 1,
 };
 
-capabilityWeight = {
-  individual_tank:  1,
-  shared_or_other:  1,
-  none:             1,
-};
+tierBlockWeight =
+  tierWeight[tier] *
+  tier.claimantCount;
 
-cellWeight =
-  tierWeight[cell.tier] *
-  capabilityWeight[cell.capability] *
-  cell.claimantCount;
-
-cellBlock =
+tierBlock =
   equityPool *
-  cellWeight /
-  totalCellWeight;
+  tierBlockWeight /
+  totalTierBlockWeight;
 ```
 
-`claimantCount` counts only households with `priorityScore > 0`. A zero-point household has no claim and adds no weight, so it cannot pull a block toward a cell it will not draw from.
+`claimantCount` counts only equity-eligible households with `needScore > 0`. A zero-need household has no claim and adds no weight.
 
-Both weight tables are **governance policy**, versioned and votable alongside the 60/35/5 split (§17, §22).
+Tier weights are **governance policy**, versioned and votable alongside the 60/35/5 split (§17, §22). Capability has no financial weight in the Equity Pool.
 
-## 12.4 Within a cell — divide by priority points
+## 12.4 Within a tier — divide by Need Score
 
 ```ts
-cellRate =
-  cellBlock /
-  cellPriorityPoints;
+tierRate =
+  tierBlock /
+  tierNeedPoints;
 
 equityCredit =
-  household.priorityScore *
-  cellRate;
+  household.needScore *
+  tierRate;
 ```
 
-Every cell has its own rate. There is no longer one headline `$/point` figure for the feeder — the operator console must show twelve, or show the per-tier average and label it as an average.
+Every household in one Need Tier uses the same rate, regardless of capability. The operator console shows four financial rates and may retain twelve capability views for operational reporting.
 
 ## 12.5 What the default weights actually do
 
-With `capabilityWeight` flat at 1, the three cells inside a tier draw blocks proportional to headcount alone. The consequence is deliberate and worth stating plainly:
+The three capability views inside a tier share one financial block and rate. The consequence is deliberate and worth stating plainly:
 
-> **Average credit is equal across capability classes within a tier.** Factor E moves a household's position inside its cell, but not the money that flows to its cell.
+> **Average credit is equal across capability classes within a tier.** Factor E is operational context only and does not alter the Equity divisor.
 
-That is the strongest available reading of "need must dominate contribution" (§4). Contribution capability is compensated through participation and, for producers, through the Solar Pool — not through a larger share of hardship support.
+That is the clearest reading of "need must determine equity." Verified service is compensated through the Contributor Pool, not through a larger share of hardship support.
 
-If the community votes to reward capability from the equity pool, raise `capabilityWeight.individual_tank` above 1. That is a governance decision, and it must be re-checked against the Inversion Test (§15) before it takes effect.
+Capability weighting is intentionally not a governance control. Verified delivery is rewarded only through the Contributor Pool.
 
 ## 12.6 Rounding
 
-All arithmetic in **integer cents**, distributed by largest remainder at both levels — pool → twelve blocks, then block → households. The invariant is exact, not approximate:
+All arithmetic uses **integer cents**, distributed by largest remainder at both levels — pool → four tier blocks, then tier block → households. The invariant is exact, not approximate:
 
 ```ts
 sum(allEquityCredits) === equityPoolCents;
@@ -480,34 +502,28 @@ Enrolment as a contributor, not `hasSolar`. Panels a household does not earn fro
 Calculation:
 
 ```ts
-solarCredit =
-  solarPoolValue /
-  enrolledSolarOwners;
+contributorReward =
+  contributorPoolValue *
+  householdVerifiedWeight /
+  totalVerifiedWeight;
 ```
 
-Every enrolled solar owner gets the same Solar Pool payment regardless of:
+Only verification-approved contribution weights enter this calculation. A household with no verified contribution receives no Contributor reward for the period.
 
-- panel size,
-- system size,
-- kWh generated,
-- priority score.
+### An eligible household may receive both separate credits
 
-### A household draws from one pool, not both
-
-A household paid from the Solar Pool is **excluded from the Equity Pool** for that period (§12.1).
+An equity-eligible contributor retains both independently calculated entitlements.
 
 ```ts
 totalHouseholdCredit =
-  household.receivesSolarPool
-    ? solarCredit
-    : equityCredit;
+  equityCredit + contributorReward;
 ```
 
-The two pools answer different questions — *what did you produce* and *what disadvantage do you face* — and paying one household from both was the source of the perception problem in §28. Producer compensation is not hardship support and must not be presented as topping it up.
+The two pools answer different questions — *what verified service did you deliver* and *what disadvantage do you face* — and must be presented as separate wallet line items.
 
 Enrolment is the switch, not ownership. A household with panels it does not earn from is an equity participant like any other.
 
-**Partial-period enrolment:** a household that enrols as a contributor mid-period is paid from the Solar Pool pro-rata by `daysEnrolled / daysInPeriod`, and is excluded from the Equity Pool for the whole period. Do not split one household across both pools within a period — it breaks both divisors and is impossible to explain on a statement.
+**Partial-period enrolment:** only verification-approved contribution recorded while enrolled enters the monthly Contributor weight. Equity eligibility remains independent.
 
 ---
 
@@ -572,7 +588,7 @@ assert(
 );
 ```
 
-The governance UI must refuse any `capabilityWeight` or `tierWeight` edit that breaks either assertion, the same way it refuses `equityPct < 60`.
+The governance UI must refuse any `tierWeight` edit that breaks either assertion, the same way it refuses `equityPct < 60`.
 
 UI suggestion:
 
@@ -819,7 +835,7 @@ E = 15
 Priority = 18
 ```
 
-Maria is an enrolled solar contributor, so she is excluded from the Equity Pool:
+Maria is an enrolled contributor. Her verified-service reward is calculated separately; she receives an Equity credit only if Council has also approved her need/access eligibility:
 
 ```text
 receivesSolarPool = true
@@ -846,6 +862,21 @@ If it inverts, that is a governance signal to revisit the 60/35/5 split (§17) �
 ---
 
 # 20. Settlement Process
+
+> The implementation sketch later in this section is retained as design
+> history. Where it references `capabilityWeight`, `priorityScore` as the Equity
+> divisor, or contributor exclusion, use the current rules at the top of this
+> document and the production engine in `lib/engine/monthly-settlement.ts`.
+
+Current order:
+
+```text
+verify monthly event value
+→ split the fixed 60/35/5 pools
+→ allocate Equity by explicit eligibility and Need Score
+→ allocate Contributor rewards by verified contribution weight
+→ post each non-zero credit type idempotently
+```
 
 Settlement occurs after program value has been verified.
 

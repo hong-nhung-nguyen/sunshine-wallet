@@ -7,13 +7,21 @@ export interface EquityCellHouseholdDetail {
   displayId: string;
   needScore: number;
   capabilityScore: number;
-  priorityScore: number;
+  equityScore: number;
   verifiedEnergyKwh: number;
-  energyStatus: "verified" | "eligible_not_dispatched" | "not_available";
+  energyStatus:
+    | "verified"
+    | "dispatched_pending_verification"
+    | "verification_failed"
+    | "eligible_not_dispatched"
+    | "not_available";
   creditCents: number;
+  contributorRewardCents: number;
+  totalCreditCents: number;
 }
 
 export interface EquityCellDetail {
+  policyVersion: string;
   key: string;
   tier: string;
   capability: string;
@@ -30,18 +38,24 @@ const roundEnergy = (value: number) => Math.round(value * 10) / 10;
 function seededEnergy(
   householdId: string,
   capabilityScore: number,
+  hasVerifiedReward: boolean,
 ): Pick<EquityCellHouseholdDetail, "verifiedEnergyKwh" | "energyStatus"> {
   const index = Number(householdId.match(/_(\d+)$/)?.[1] ?? 0);
+  if (hasVerifiedReward)
+    return {
+      verifiedEnergyKwh: roundEnergy(2.8 + (index % 4) * 0.5),
+      energyStatus: "verified",
+    };
   if (capabilityScore === 0 || index % 5 === 4)
     return { verifiedEnergyKwh: 0, energyStatus: "not_available" };
-  if (index % 4 === 3)
-    return { verifiedEnergyKwh: 0, energyStatus: "eligible_not_dispatched" };
-  return {
-    verifiedEnergyKwh: roundEnergy(
-      1.2 + (capabilityScore / 15) * 2.1 + (index % 4) * 0.4,
-    ),
-    energyStatus: "verified",
-  };
+  if (index % 4 === 1)
+    return {
+      verifiedEnergyKwh: 0,
+      energyStatus: "dispatched_pending_verification",
+    };
+  if (index % 4 === 2)
+    return { verifiedEnergyKwh: 0, energyStatus: "verification_failed" };
+  return { verifiedEnergyKwh: 0, energyStatus: "eligible_not_dispatched" };
 }
 
 /**
@@ -59,11 +73,23 @@ export function getEquityCellDetail(cellKey: string): EquityCellDetail | null {
       .filter((credit) => credit.cellKey === cellKey)
       .map((credit) => [credit.householdId, credit]),
   );
+  const contributorRewardByHousehold = new Map(
+    augustMonthlyLedger.settlement.credits
+      .filter((credit) => credit.branch === "1B" && credit.amountCents > 0)
+      .map((credit) => [credit.householdId, credit.amountCents]),
+  );
   const households = householdRoll
     .filter((household) => creditByHousehold.has(household.id))
     .map((household, index) => {
       const score = computePriorityScore(household.factors);
-      const energy = seededEnergy(household.id, score.contribScore);
+      const contributorRewardCents =
+        contributorRewardByHousehold.get(household.id) ?? 0;
+      const energy = seededEnergy(
+        household.id,
+        score.contribScore,
+        contributorRewardCents > 0,
+      );
+      const creditCents = creditByHousehold.get(household.id)?.amountCents ?? 0;
       return {
         householdId: household.id,
         displayId: `${score.needTier.slice(0, 2).toUpperCase()}-${score.capabilityClass
@@ -72,9 +98,11 @@ export function getEquityCellDetail(cellKey: string): EquityCellDetail | null {
           .join("")}-${String(index + 1).padStart(3, "0")}`,
         needScore: score.needScore,
         capabilityScore: score.contribScore,
-        priorityScore: score.priorityScore,
+        equityScore: score.needScore,
         ...energy,
-        creditCents: creditByHousehold.get(household.id)?.amountCents ?? 0,
+        creditCents,
+        contributorRewardCents,
+        totalCreditCents: creditCents + contributorRewardCents,
       };
     })
     .sort(
@@ -84,6 +112,7 @@ export function getEquityCellDetail(cellKey: string): EquityCellDetail | null {
     );
 
   return {
+    policyVersion: augustMonthlyLedger.settlement.policy.version,
     key: cell.key,
     tier: cell.tier,
     capability: cell.capability,

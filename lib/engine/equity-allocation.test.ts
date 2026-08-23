@@ -15,6 +15,7 @@ const household = (
   needScore: number,
   factorE: number,
   receivesSolarPool = false,
+  equityEligible = true,
 ): EquityHousehold => {
   const factorA = Math.min(35, needScore);
   const factorB = Math.min(25, Math.max(0, needScore - 35));
@@ -27,7 +28,7 @@ const household = (
     factorD,
     factorE,
   };
-  return { id, factors, receivesSolarPool };
+  return { id, factors, receivesSolarPool, equityEligible };
 };
 
 /** One household in each of the twelve cells, plus a solar contributor. */
@@ -44,32 +45,29 @@ const roll: EquityHousehold[] = [
   household("standard-tank", 10, 15),
   household("standard-shared", 10, 8),
   household("standard-none", 10, 0),
-  household("maria-solar", 3, 15, true),
+  household("maria-solar", 3, 15, true, false),
 ];
 
 const POOL = 261_600;
 
-const creditFor = (
-  result: ReturnType<typeof allocateEquityPool>,
-  id: string,
-) => result.credits.find((credit) => credit.householdId === id)?.amountCents;
+const creditFor = (result: ReturnType<typeof allocateEquityPool>, id: string) =>
+  result.credits.find((credit) => credit.householdId === id)?.amountCents;
 
 const blockFor = (result: ReturnType<typeof allocateEquityPool>, key: string) =>
   result.cells.find((cell) => cell.key === key)?.blockCents ?? 0;
 
-describe("pool exclusivity", () => {
-  it("pays nothing from the equity pool to a solar-pool recipient", () => {
+describe("independent eligibility", () => {
+  it("pays nothing from the equity pool to an ineligible household", () => {
     const result = allocateEquityPool(roll, POOL);
-    expect(result.excludedSolarCount).toBe(1);
+    expect(result.ineligibleCount).toBe(1);
     expect(result.eligibleCount).toBe(12);
     expect(creditFor(result, "maria-solar")).toBeUndefined();
   });
 
-  it("keeps a household with panels it earns nothing from", () => {
-    // has_solar is irrelevant here; only receivesSolarPool routes a household.
-    const tenant = household("landlord-panels", 70, 0, false);
+  it("keeps an equity-eligible household even when it is also a contributor", () => {
+    const tenant = household("verified-and-high-need", 70, 15, true, true);
     const result = allocateEquityPool([...roll, tenant], POOL);
-    expect(creditFor(result, "landlord-panels")).toBeGreaterThan(0);
+    expect(creditFor(result, "verified-and-high-need")).toBeGreaterThan(0);
   });
 });
 
@@ -87,17 +85,14 @@ describe("closure", () => {
 
   it("closes the twelve cell blocks against the pool", () => {
     const result = allocateEquityPool(roll, POOL);
-    const blocks = result.cells.reduce(
-      (sum, cell) => sum + cell.blockCents,
-      0,
-    );
+    const blocks = result.cells.reduce((sum, cell) => sum + cell.blockCents, 0);
     expect(blocks).toBe(POOL);
     expect(result.cells).toHaveLength(12);
   });
 
   it("carries the pool forward when nobody is eligible", () => {
     const result = allocateEquityPool(
-      [household("solar-only", 40, 15, true)],
+      [household("solar-only", 40, 15, true, false)],
       12_345,
     );
     expect(result.credits).toHaveLength(0);
@@ -119,7 +114,7 @@ describe("block sizing", () => {
     );
   });
 
-  it("gives cells of one tier the same block when capability weights are flat", () => {
+  it("gives equivalent capability views the same block within a tier", () => {
     const result = allocateEquityPool(roll, POOL);
     // Equal weights; only the single largest-remainder cent may separate them.
     expect(
@@ -142,7 +137,7 @@ describe("block sizing", () => {
 });
 
 describe("division within a cell", () => {
-  it("divides a block in proportion to priority score", () => {
+  it("divides a tier block in proportion to Need Score", () => {
     const result = allocateEquityPool(
       [household("a", 70, 0), household("b", 80, 0)],
       100_000,
@@ -153,7 +148,7 @@ describe("division within a cell", () => {
     expect(b / a).toBeCloseTo(80 / 70, 2);
   });
 
-  it("pays the same credit for different scores in the same tier", () => {
+  it("does not increase an Equity credit merely because a device exists", () => {
     // The headline consequence from backend-flow.md §2: standard/individual_tank
     // on 25 points and standard/none on 10 points draw equal-sized blocks, so
     // the cell with fewer points converts each point into more money.
@@ -171,7 +166,25 @@ describe("division within a cell", () => {
     const noneRate =
       result.cells.find((cell) => cell.key === "standard:none")
         ?.centsPerPoint ?? 0;
-    expect(noneRate).toBeGreaterThan(bestRate);
+    expect(noneRate).toBe(bestRate);
+  });
+
+  it("pays higher need more across different capability cells in one tier", () => {
+    const result = allocateEquityPool(
+      [
+        household("higher-need-no-device", 58, 0),
+        household("lower-need-tank", 42, 15),
+      ],
+      10_000,
+    );
+
+    expect(creditFor(result, "higher-need-no-device")).toBeGreaterThan(
+      creditFor(result, "lower-need-tank") ?? 0,
+    );
+    const rates = result.cells
+      .filter(({ tier, claimantCount }) => tier === "high" && claimantCount > 0)
+      .map(({ centsPerPoint }) => centsPerPoint);
+    expect(new Set(rates).size).toBe(1);
   });
 });
 
@@ -190,19 +203,6 @@ describe("Equity Floor assertions", () => {
     expect(check.explanation).toContain("cell empty");
   });
 
-  it("detects an inversion when capability weights are tilted far enough", () => {
-    const result = allocateEquityPool(roll, POOL, {
-      ...DEFAULT_EQUITY_GROUP_POLICY,
-      capabilityWeights: {
-        individual_tank: 40,
-        shared_or_other: 1,
-        none: 1,
-      },
-    });
-    expect(checkInversion(result).passed).toBe(false);
-    expect(checkInversion(result).explanation).toContain("INVERTED");
-  });
-
   it("reports average credit falling from critical to standard", () => {
     const averages = averageCreditByTier(allocateEquityPool(roll, POOL));
     expect(averages.critical).toBeGreaterThan(averages.high);
@@ -212,15 +212,11 @@ describe("Equity Floor assertions", () => {
 });
 
 describe("governance policy validation", () => {
-  it("rejects a zero weight, which would remove a cohort entirely", () => {
+  it("rejects a zero tier weight, which would remove a cohort entirely", () => {
     expect(() =>
       allocateEquityPool(roll, POOL, {
         ...DEFAULT_EQUITY_GROUP_POLICY,
-        capabilityWeights: {
-          individual_tank: 1,
-          shared_or_other: 1,
-          none: 0,
-        },
+        tierWeights: { critical: 4, high: 3, moderate: 2, standard: 0 },
       }),
     ).toThrow();
   });

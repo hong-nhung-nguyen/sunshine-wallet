@@ -18,7 +18,6 @@ export default function EquityCellsPage() {
   const inversion = checkInversion(result);
   const monotonicity = checkTierMonotonicity(result);
   const averages = averageCreditByTier(result);
-  const totalWeight = result.cells.reduce((sum, c) => sum + c.cellWeight, 0);
   const distributed = result.credits.reduce(
     (sum, credit) => sum + credit.amountCents,
     0,
@@ -33,13 +32,13 @@ export default function EquityCellsPage() {
             Layer 1A · equity allocation
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--council-ink)] sm:text-4xl">
-            Twelve cells, twelve rates
+            Twelve views, four need rates
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-            The equity pool is not divided by one per-point rate. It splits into
-            twelve blocks by need tier and capability, and only inside a block
-            do priority points divide the money. Solar contributors are paid
-            from the Solar Pool and do not appear here.
+            The Equity Pool splits into four Need Tier blocks. Everyone in a
+            tier uses the same need-point rate, regardless of capability. The
+            twelve cells remain reporting views, while verified contribution is
+            rewarded separately.
           </p>
         </div>
         <span
@@ -74,12 +73,12 @@ export default function EquityCellsPage() {
           </p>
         </Card>
         <Card>
-          <p className="text-sm text-[var(--muted)]">Paid from Solar Pool</p>
+          <p className="text-sm text-[var(--muted)]">Not equity eligible</p>
           <p className="mt-3 font-mono text-3xl font-semibold">
-            {result.excludedSolarCount}
+            {result.ineligibleCount}
           </p>
           <p className="mt-2 text-xs text-[var(--muted)]">
-            contributors · off the equity roll
+            households outside the need-based roll
           </p>
         </Card>
         <Card>
@@ -108,11 +107,13 @@ export default function EquityCellsPage() {
               <tr>
                 <th className="p-4 font-semibold">Cell</th>
                 <th className="p-4 text-right font-semibold">Claimants</th>
-                <th className="p-4 text-right font-semibold">Points</th>
+                <th className="p-4 text-right font-semibold">Need points</th>
                 <th className="p-4 text-right font-semibold">Weight</th>
                 <th className="p-4 text-right font-semibold">Block</th>
                 <th className="p-4 text-right font-semibold">Block %</th>
-                <th className="p-4 text-right font-semibold">Rate / point</th>
+                <th className="p-4 text-right font-semibold">
+                  Tier rate / point
+                </th>
                 <th className="p-4 text-right font-semibold">
                   <span className="sr-only">Group details</span>
                 </th>
@@ -146,8 +147,8 @@ export default function EquityCellsPage() {
                     {cents(cell.blockCents)}
                   </td>
                   <td className="p-4 text-right font-mono text-[var(--muted)]">
-                    {totalWeight > 0
-                      ? `${((cell.cellWeight / totalWeight) * 100).toFixed(1)}%`
+                    {result.equityPoolCents > 0
+                      ? `${((cell.blockCents / result.equityPoolCents) * 100).toFixed(1)}%`
                       : "—"}
                   </td>
                   <td className="p-4 text-right font-mono font-semibold">
@@ -171,9 +172,9 @@ export default function EquityCellsPage() {
           </table>
         </div>
         <p className="mt-3 text-xs text-[var(--muted)]">
-          The rate is highest where capability is lowest. That is the mechanism
-          working: the block is set by need and headcount, so a cell holding
-          fewer points converts each point into more money.
+          Each tier has one financial rate shared by all three capability views.
+          A higher Need Score therefore earns more within a tier, regardless of
+          device ownership or dispatch status.
         </p>
       </section>
 

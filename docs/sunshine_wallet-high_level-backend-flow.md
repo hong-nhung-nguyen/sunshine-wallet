@@ -1,5 +1,14 @@
 # Sunshine Wallet — Backend Flow Specification
 
+> **Current settlement clarification (23 Aug 2026):** Equity support and
+> verified-service compensation are independent. Equity uses Factors A-D only;
+> Contributor rewards use aggregated verified attribution. An equity-eligible
+> contributor may receive both separate credits from the already-fixed pools.
+> The Equity Pool uses four Need Tier rates; capability cells are reporting
+> views only and never establish separate financial rates.
+> This supersedes older one-pool-per-household and Factor-E-in-Equity examples
+> retained later in this design history.
+
 > Implementation companion to `PROTOTYPE_SPEC.md`. This document defines the **runtime flow**: onboarding → forecast → dispatch → verification → settlement → reporting, plus the data contracts and the frontend integration points.
 >
 > Stack: Node.js (Express, ES modules) · React (Vite) · SQLite (better-sqlite3). Everything external is a **mocked adapter** — the seams are real, the integrations are not.
@@ -431,6 +440,9 @@ flowchart TD
 ```
 
 **Settle 1B before 1A.** The contributor roll determines who is on the equity roll; computing both from the same household list in parallel is how a household gets paid twice.
+
+> **Historical design below:** the following two-roll/twelve-rate section is
+> superseded by the current clarification at the top of this document.
 
 **Two rolls, and they no longer overlap:**
 

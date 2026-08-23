@@ -9,8 +9,9 @@ import {
 /**
  * The Dapto East roll — 300 participants, deterministic, no randomness.
  *
- * 90 are enrolled solar contributors (paid from the Solar Pool, off the equity
- * roll); the remaining 210 populate all twelve priority cells. Every cell has
+ * 90 are enrolled solar contributors. Equity eligibility remains independent,
+ * so verified service never cancels need-based support. The equity-eligible
+ * demonstration households populate all twelve priority cells. Every cell has
  * members, because a cell left empty is a block-allocation path never exercised
  * before the demo.
  */
@@ -58,16 +59,15 @@ const CELL_COUNTS: Record<NeedTier, Record<CapabilityClass, number>> = {
   standard: { individual_tank: 14, shared_or_other: 11, none: 14 },
 };
 
-const cellPlans: CellPlan[] = (
-  Object.keys(CELL_COUNTS) as NeedTier[]
-).flatMap((tier) =>
-  (Object.keys(CELL_COUNTS[tier]) as CapabilityClass[]).map((capability) => ({
-    tier,
-    capability,
-    count: CELL_COUNTS[tier][capability],
-    base: TIER_BASE[tier],
-    factorE: CAPABILITY_FACTOR_E[capability],
-  })),
+const cellPlans: CellPlan[] = (Object.keys(CELL_COUNTS) as NeedTier[]).flatMap(
+  (tier) =>
+    (Object.keys(CELL_COUNTS[tier]) as CapabilityClass[]).map((capability) => ({
+      tier,
+      capability,
+      count: CELL_COUNTS[tier][capability],
+      base: TIER_BASE[tier],
+      factorE: CAPABILITY_FACTOR_E[capability],
+    })),
 );
 
 /**
@@ -90,7 +90,11 @@ function buildEquityRoll(): RollHousehold[] {
         label: `${plan.tier} · ${plan.capability}`,
         factors,
         hasSolar: false,
-        receivesSolarPool: false,
+        equityEligible: true,
+        receivesSolarPool:
+          plan.tier === "critical" &&
+          plan.capability === "individual_tank" &&
+          [0, 3, 6].includes(index),
       });
     }
   return households;
@@ -110,6 +114,7 @@ function buildContributorRoll(): RollHousehold[] {
     label: "solar contributor",
     factors,
     hasSolar: true,
+    equityEligible: false,
     receivesSolarPool: true,
   }));
 }
@@ -127,15 +132,23 @@ export const edgeCaseHouseholds: readonly RollHousehold[] = [
     label: "social housing · landlord-owned panels",
     factors: { factorA: 25, factorB: 25, factorC: 15, factorD: 10, factorE: 0 },
     hasSolar: true,
+    equityEligible: true,
     receivesSolarPool: false,
   },
   {
-    // High need AND an enrolled contributor. Appears on the 1B roll only;
-    // pool exclusivity must reject any 1A credit written for them.
+    // High need AND an enrolled contributor. Receives independently calculated
+    // Equity and Contributor credits when verified contribution exists.
     id: "hh_edge_needy_contributor",
     label: "critical need · enrolled contributor",
-    factors: { factorA: 25, factorB: 25, factorC: 15, factorD: 10, factorE: 15 },
+    factors: {
+      factorA: 25,
+      factorB: 25,
+      factorC: 15,
+      factorD: 10,
+      factorE: 15,
+    },
     hasSolar: true,
+    equityEligible: true,
     receivesSolarPool: true,
   },
   {
@@ -145,6 +158,7 @@ export const edgeCaseHouseholds: readonly RollHousehold[] = [
     label: "no hardship · no capability",
     factors: { factorA: 0, factorB: 0, factorC: 0, factorD: 0, factorE: 0 },
     hasSolar: false,
+    equityEligible: true,
     receivesSolarPool: false,
   },
   {
@@ -154,6 +168,7 @@ export const edgeCaseHouseholds: readonly RollHousehold[] = [
     label: "moderate need · EV charger only",
     factors: { factorA: 12, factorB: 10, factorC: 3, factorD: 6, factorE: 4 },
     hasSolar: false,
+    equityEligible: true,
     receivesSolarPool: false,
   },
 ];
@@ -171,10 +186,9 @@ export const householdRoll: readonly RollHousehold[] = [
 export const rollSummary = {
   total: householdRoll.length,
   contributors: householdRoll.filter((h) => h.receivesSolarPool).length,
-  equityEligible: householdRoll.filter((h) => !h.receivesSolarPool).length,
+  equityEligible: householdRoll.filter((h) => h.equityEligible).length,
   ownsSolar: householdRoll.filter((h) => h.hasSolar).length,
   claimants: householdRoll.filter(
-    (h) =>
-      !h.receivesSolarPool && computePriorityScore(h.factors).priorityScore > 0,
+    (h) => h.equityEligible && computePriorityScore(h.factors).needScore > 0,
   ).length,
 };

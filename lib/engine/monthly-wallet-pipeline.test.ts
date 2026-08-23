@@ -8,11 +8,13 @@ const households: EquityHousehold[] = [
   {
     id: "equity_household",
     factors: { factorA: 25, factorB: 25, factorC: 15, factorD: 10, factorE: 0 },
+    equityEligible: true,
     receivesSolarPool: false,
   },
   {
     id: "solar_household",
     factors: { factorA: 0, factorB: 0, factorC: 3, factorD: 6, factorE: 15 },
+    equityEligible: true,
     receivesSolarPool: true,
   },
 ];
@@ -57,26 +59,27 @@ describe("monthly wallet pipeline", () => {
     expect(result.excludedEventIds).toEqual(["failed", "other_month"]);
   });
 
-  it("allocates exclusive pools and posts wallet transactions", () => {
+  it("posts separate need and verified-contribution credits", () => {
     const result = run();
     expect(result.settlement.status).toBe("settled");
-    expect(result.postedTransactions).toHaveLength(2);
+    expect(result.postedTransactions).toHaveLength(3);
     expect(
       result.postedTransactions.find(
         ({ participantId }) => participantId === "equity_household",
       )?.type,
     ).toBe("equity_credit");
     expect(
-      result.postedTransactions.find(
-        ({ participantId }) => participantId === "solar_household",
-      )?.type,
-    ).toBe("contributor_reward");
+      result.postedTransactions
+        .filter(({ participantId }) => participantId === "solar_household")
+        .map(({ type }) => type)
+        .sort(),
+    ).toEqual(["contributor_reward", "equity_credit"]);
   });
 
   it("does not post the same monthly credit twice", () => {
     const first = run();
     const second = run(first.ledger);
     expect(second.postedTransactions).toHaveLength(0);
-    expect(second.skippedTransactionKeys).toHaveLength(2);
+    expect(second.skippedTransactionKeys).toHaveLength(3);
   });
 });

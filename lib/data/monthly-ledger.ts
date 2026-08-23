@@ -11,15 +11,16 @@ const verifiedEvents: VerifiedEventValue[] = seedData.settlements.map(
     const verification = seedData.verificationRecords.find(
       ({ id }) => id === settlement.verificationRecordId,
     );
-    const contributions = seedData.contributorAttributions.filter(
-      ({ eventId }) => eventId === settlement.eventId,
-    );
-    const contributorWeights = Object.fromEntries(
-      contributions.map((contribution, index) => [
-        `hh_contributor_${String(index).padStart(2, "0")}`,
-        contribution.shareOfVerifiedResponse,
-      ]),
-    );
+    // Deterministic verified shares for the demo event. They sum to 1 and
+    // include several need-eligible households so the dual-credit path is
+    // visible in the Equity Cell drill-down.
+    const contributorWeights = {
+      hh_contributor_00: 0.3,
+      hh_critical_individual_tank_00: 0.22,
+      hh_critical_individual_tank_03: 0.18,
+      hh_critical_individual_tank_06: 0.16,
+      hh_edge_needy_contributor: 0.14,
+    };
     return {
       eventId: settlement.eventId,
       occurredAt: settlement.createdAt,

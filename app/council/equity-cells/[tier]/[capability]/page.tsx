@@ -13,9 +13,18 @@ const capabilityLabel = (value: string) => value.replace(/_/g, " ");
 
 function activityLabel(
   energyKwh: number,
-  status: "verified" | "eligible_not_dispatched" | "not_available",
+  status:
+    | "verified"
+    | "dispatched_pending_verification"
+    | "verification_failed"
+    | "eligible_not_dispatched"
+    | "not_available",
 ) {
   if (status === "verified") return `${energyKwh.toFixed(1)} kWh verified`;
+  if (status === "dispatched_pending_verification")
+    return "Dispatched · verification pending";
+  if (status === "verification_failed")
+    return "Dispatched · verification failed";
   if (status === "eligible_not_dispatched") return "Eligible · not dispatched";
   return "No verified activity";
 }
@@ -27,6 +36,10 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
 
   const reconciledCreditCents = detail.households.reduce(
     (sum, household) => sum + household.creditCents,
+    0,
+  );
+  const reconciledRewardCents = detail.households.reduce(
+    (sum, household) => sum + household.contributorRewardCents,
     0,
   );
 
@@ -58,8 +71,8 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
           All qualifying households in this policy cell. Household identifiers
-          are anonymised; credits come from priority points inside the cell’s
-          Council-approved block.
+          are anonymised. Equity credits use the common rate for this Need Tier;
+          capability only determines this reporting view.
         </p>
       </header>
 
@@ -72,12 +85,15 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
           value={`${detail.claimantCount}`}
         />
         <SummaryCard
-          label="Priority points"
+          label="Equity points"
           value={detail.cellPoints.toLocaleString()}
         />
-        <SummaryCard label="Cell allocation" value={money(detail.blockCents)} />
         <SummaryCard
-          label="Rate per point"
+          label="Credits in this view"
+          value={money(detail.blockCents)}
+        />
+        <SummaryCard
+          label="Need Tier rate per point"
           value={`$${(detail.centsPerPoint / 100).toFixed(4)}`}
         />
         <SummaryCard
@@ -92,9 +108,10 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
         </h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-amber-900">
           Verified energy is simulated operational context for this demo. It
-          does not determine the credit below. Each household’s Equity credit is
-          its priority-point share of this cell’s {money(detail.blockCents)}
-          block. Solar Contributor rewards remain in the separate Solar Pool.
+          does not determine the Equity credit below. Every household in this
+          Need Tier uses the same rate; Need Score determines the amount. A
+          household that also delivered verified energy may receive a separate
+          Contributor reward from the fixed Solar Pool.
         </p>
       </Card>
 
@@ -134,13 +151,19 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
                   Capability
                 </th>
                 <th scope="col" className="p-4 text-right font-semibold">
-                  Priority points
+                  Equity points
                 </th>
                 <th scope="col" className="p-4 font-semibold">
                   Energy activity
                 </th>
                 <th scope="col" className="p-4 text-right font-semibold">
-                  August credit
+                  Equity credit
+                </th>
+                <th scope="col" className="p-4 text-right font-semibold">
+                  Contributor reward
+                </th>
+                <th scope="col" className="p-4 text-right font-semibold">
+                  Monthly total
                 </th>
               </tr>
             </thead>
@@ -160,14 +183,19 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
                     {household.capabilityScore}
                   </td>
                   <td className="p-4 text-right font-mono font-semibold">
-                    {household.priorityScore}
+                    {household.equityScore}
                   </td>
                   <td className="p-4">
                     <span
                       className={
                         household.energyStatus === "verified"
                           ? "font-semibold text-emerald-800"
-                          : "text-[var(--muted)]"
+                          : household.energyStatus ===
+                              "dispatched_pending_verification"
+                            ? "font-semibold text-amber-800"
+                            : household.energyStatus === "verification_failed"
+                              ? "font-semibold text-rose-800"
+                              : "text-[var(--muted)]"
                       }
                     >
                       {activityLabel(
@@ -178,6 +206,12 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
                   </td>
                   <td className="p-4 text-right font-mono font-semibold text-[var(--council-ink)]">
                     {money(household.creditCents)}
+                  </td>
+                  <td className="p-4 text-right font-mono font-semibold text-emerald-800">
+                    {money(household.contributorRewardCents)}
+                  </td>
+                  <td className="p-4 text-right font-mono font-semibold text-[var(--council-ink)]">
+                    {money(household.totalCreditCents)}
                   </td>
                 </tr>
               ))}
@@ -197,6 +231,12 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
                 <td className="p-4 text-right font-mono font-semibold">
                   {money(reconciledCreditCents)}
                 </td>
+                <td className="p-4 text-right font-mono font-semibold">
+                  {money(reconciledRewardCents)}
+                </td>
+                <td className="p-4 text-right font-mono font-semibold">
+                  {money(reconciledCreditCents + reconciledRewardCents)}
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -204,7 +244,7 @@ export default async function EquityCellDetailPage({ params }: PageProps) {
         <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
           Demo provenance: household energy activity is simulated. Eligibility,
           points and credits are calculated from governance policy version
-          governance-1.0.0 and the canonical August settlement.
+          {detail.policyVersion} and the canonical August settlement.
         </p>
       </section>
     </div>
