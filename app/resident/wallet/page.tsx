@@ -47,6 +47,16 @@ export default async function WalletPage() {
           Credit history
         </h2>
         <div className="mt-4 overflow-hidden rounded-3xl border border-[var(--border)] bg-white">
+          {resident.recentCredits.length === 0 ? (
+            <div className="p-6 text-center sm:p-8">
+              <p className="font-semibold">Your wallet is empty</p>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
+                {resident.role === "contributor"
+                  ? "Contributor Rewards will appear after your registered resource delivers flexibility and the result is verified."
+                  : "Equity Dividends will appear after Council confirms your eligibility and completes a verified monthly settlement."}
+              </p>
+            </div>
+          ) : null}
           {resident.recentCredits.map((credit) => (
             <div
               key={credit.id}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import {
   latestVerifiedFlexEnergyKwh,
@@ -78,6 +79,11 @@ export default async function ResidentPage() {
                 </span>
               </summary>
               <div className="border-t border-[var(--border)] px-5 py-2">
+                {monthlyCreditsWithBreakdown.length === 0 ? (
+                  <p className="py-5 text-sm text-[var(--muted)]">
+                    No credits yet. Verified monthly rewards will appear here.
+                  </p>
+                ) : null}
                 {monthlyCreditsWithBreakdown.map(({ credit, events }) => (
                   <div
                     key={credit.id}
@@ -139,107 +145,139 @@ export default async function ResidentPage() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold tracking-[0.12em] text-[var(--primary)] uppercase">
-                Latest event
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">
-                {latestCredit.label}
-              </h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                {latestCredit.date} · Verified event
-              </p>
-            </div>
-            <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-              Verified
-            </span>
-          </div>
-          <div className="mt-5 flex items-center justify-between gap-4 border-t border-[var(--border)] pt-4 text-sm">
-            <span className="text-[var(--muted)]">Community impact</span>
-            <span className="font-mono font-semibold">
-              {latestVerifiedFlexEnergyKwh} kWh verified
-            </span>
-          </div>
-          <details className="group mt-5 rounded-xl border border-[var(--primary)]">
-            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-5 text-sm font-semibold text-[var(--primary)]">
-              See how it worked
-              <span className="text-lg transition-transform group-open:rotate-45">
-                +
+        {latestCredit ? (
+          <Card className="p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold tracking-[0.12em] text-[var(--primary)] uppercase">
+                  Latest event
+                </p>
+                <h2 className="mt-2 text-xl font-semibold">
+                  {latestCredit.label}
+                </h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {latestCredit.date} · Verified event
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                Verified
               </span>
-            </summary>
-            <div className="border-t border-[var(--border)] px-5 py-4 text-sm leading-6 text-[var(--muted)]">
-              <p>
-                The event shifted {latestVerifiedFlexEnergyKwh} kWh into a
-                solar-rich period and passed Council’s verification checks.
-              </p>
-              <p className="mt-2">
-                Your{" "}
-                {contributor ? "verified contribution" : "equity eligibility"}{" "}
-                was included in the August monthly settlement.
-              </p>
             </div>
-          </details>
-        </Card>
+            <div className="mt-5 flex items-center justify-between gap-4 border-t border-[var(--border)] pt-4 text-sm">
+              <span className="text-[var(--muted)]">Community impact</span>
+              <span className="font-mono font-semibold">
+                {latestVerifiedFlexEnergyKwh} kWh verified
+              </span>
+            </div>
+            <details className="group mt-5 rounded-xl border border-[var(--primary)]">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-5 text-sm font-semibold text-[var(--primary)]">
+                See how it worked
+                <span className="text-lg transition-transform group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <div className="border-t border-[var(--border)] px-5 py-4 text-sm leading-6 text-[var(--muted)]">
+                <p>
+                  The event shifted {latestVerifiedFlexEnergyKwh} kWh into a
+                  solar-rich period and passed Council’s verification checks.
+                </p>
+                <p className="mt-2">
+                  Your{" "}
+                  {contributor ? "verified contribution" : "equity eligibility"}{" "}
+                  was included in the August monthly settlement.
+                </p>
+              </div>
+            </details>
+          </Card>
+        ) : (
+          <Card className="border-amber-300 p-5 sm:p-6">
+            <p className="text-xs font-bold tracking-[0.12em] text-[var(--primary)] uppercase">
+              Next step
+            </p>
+            <h2 className="mt-2 text-xl font-semibold">
+              {contributor
+                ? "Register your energy resource"
+                : "Complete your eligibility review"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              {contributor
+                ? "Add an eligible EV charger, battery, hot-water system or solar resource before Council can include it in an event."
+                : "Council needs to confirm your household details before including you in the monthly Equity Pool."}
+            </p>
+            <Link
+              href="/resident/status"
+              className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[var(--primary)] px-5 text-sm font-semibold text-white hover:bg-[var(--primary-strong)]"
+            >
+              View setup status
+            </Link>
+          </Card>
+        )}
 
-        <Card className="p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold tracking-[0.12em] text-[var(--primary)] uppercase">
-                Coming up
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">
-                {resident.nextEvent.title}
-              </h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                {resident.nextEvent.dateLabel} · {resident.nextEvent.timeLabel}
-              </p>
-            </div>
-            <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
-              {resident.nextEvent.statusLabel}
-            </span>
-          </div>
-          <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            {resident.nextEvent.action} If the event passes verification, its
-            value will be included in the monthly settlement.
-          </p>
-          <details className="group mt-5 border-t border-[var(--border)] pt-1">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-[var(--primary)]">
-              Event details
-              <span className="text-lg transition-transform group-open:rotate-45">
-                +
+        {resident.nextEvent ? (
+          <Card className="p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold tracking-[0.12em] text-[var(--primary)] uppercase">
+                  Coming up
+                </p>
+                <h2 className="mt-2 text-xl font-semibold">
+                  {resident.nextEvent.title}
+                </h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {resident.nextEvent.dateLabel} ·{" "}
+                  {resident.nextEvent.timeLabel}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                {resident.nextEvent.statusLabel}
               </span>
-            </summary>
-            <dl className="grid grid-cols-2 gap-4 rounded-xl bg-[var(--surface-muted)] p-4 text-sm">
-              <div>
-                <dt className="text-xs text-[var(--muted)]">When</dt>
-                <dd className="mt-1 font-semibold">
-                  {resident.nextEvent.dateLabel}, {resident.nextEvent.timeLabel}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-[var(--muted)]">Settlement</dt>
-                <dd className="mt-1 font-semibold">
-                  Monthly, after verification
-                </dd>
-              </div>
-              <div className="col-span-2">
-                <dt className="text-xs text-[var(--muted)]">
-                  What you need to do
-                </dt>
-                <dd className="mt-1">{resident.nextEvent.action}</dd>
-              </div>
-            </dl>
-          </details>
-        </Card>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+              {resident.nextEvent.action} If the event passes verification, its
+              value will be included in the monthly settlement.
+            </p>
+            <details className="group mt-5 border-t border-[var(--border)] pt-1">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-[var(--primary)]">
+                Event details
+                <span className="text-lg transition-transform group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <dl className="grid grid-cols-2 gap-4 rounded-xl bg-[var(--surface-muted)] p-4 text-sm">
+                <div>
+                  <dt className="text-xs text-[var(--muted)]">When</dt>
+                  <dd className="mt-1 font-semibold">
+                    {resident.nextEvent.dateLabel},{" "}
+                    {resident.nextEvent.timeLabel}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-[var(--muted)]">Settlement</dt>
+                  <dd className="mt-1 font-semibold">
+                    Monthly, after verification
+                  </dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-xs text-[var(--muted)]">
+                    What you need to do
+                  </dt>
+                  <dd className="mt-1">{resident.nextEvent.action}</dd>
+                </div>
+              </dl>
+            </details>
+          </Card>
+        ) : null}
 
         <Card className="p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <h2 className="font-semibold">Participation status</h2>
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-              <span className="size-2 rounded-full bg-emerald-600" />
-              Active
+            <span
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${resident.isNew ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}
+            >
+              <span
+                className={`size-2 rounded-full ${resident.isNew ? "bg-amber-600" : "bg-emerald-600"}`}
+              />
+              {resident.isNew ? "Setup required" : "Active"}
             </span>
           </div>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
